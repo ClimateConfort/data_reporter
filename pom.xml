@@ -24,12 +24,12 @@
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.10.2</version>
+            <version>1.11.3</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.68</version>
+            <version>1.70</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
