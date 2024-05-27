@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
 
+import com.climateconfort.common.Constants;
 import com.climateconfort.common.SensorData;
 
 import com.rabbitmq.client.Channel;
@@ -20,8 +21,6 @@ import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.AMQP.BasicProperties;
 
 public class DataReceiver {
-
-    static final String EXCHANGE_NAME = "sensor-data";
 
     private final long clientId;
     private final ConnectionFactory factory;
@@ -45,11 +44,11 @@ public class DataReceiver {
     public void subscribe() {
         try (Connection connection = factory.newConnection();
                 Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+            channel.exchangeDeclare(Constants.SENSOR_EXCHANGE_NAME, "direct");
             String queueName = channel.queueDeclare().getQueue();
 
             for (String publisherId : publisherIdList) {
-                channel.queueBind(queueName, EXCHANGE_NAME, publisherId);
+                channel.queueBind(queueName, Constants.SENSOR_EXCHANGE_NAME, publisherId);
             }
 
             SensorDataConsumer sensorDataConsumer = new SensorDataConsumer(channel);
