@@ -23,26 +23,27 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 public class DataReceiver {
 
     private final long clientId;
-    private final ConnectionFactory factory;
+    private final ConnectionFactory connectionFactory;
     private final List<String> publisherIdList;
     private final Queue<SensorData> dataQueue;
 
     private boolean isStop;
 
-    public DataReceiver(Properties properties, List<String> publisherIdList) throws NumberFormatException {  // PublisherID: String = String(buildingId) + "-" + String(roomId);
+    // PublisherID: String = String(buildingId) + "-" + String(roomId);
+    public DataReceiver(Properties properties, List<String> publisherIdList) throws NumberFormatException {
         this.clientId = Integer.parseInt(properties.getProperty("client_id", "NaN"));
-        this.factory = new ConnectionFactory();
-        this.factory.setHost(properties.getProperty("rabbitmq_server_ip", "localhost"));
-        this.factory.setPort(Integer.parseInt(properties.getProperty("rabbitmq_server_port", "5672")));
-        this.factory.setUsername(properties.getProperty("rabbitmq_server_user", "guest"));
-        this.factory.setPassword(properties.getProperty("rabbitmq_server_password", "guest"));
+        this.connectionFactory = new ConnectionFactory();
+        this.connectionFactory.setHost(properties.getProperty("rabbitmq_server_ip", "localhost"));
+        this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq_server_port", "5672")));
+        this.connectionFactory.setUsername(properties.getProperty("rabbitmq_server_user", "guest"));
+        this.connectionFactory.setPassword(properties.getProperty("rabbitmq_server_password", "guest"));
         this.publisherIdList = publisherIdList;
         this.dataQueue = new ConcurrentLinkedQueue<>();
         this.isStop = false;
     }
 
-    public void subscribe() {
-        try (Connection connection = factory.newConnection();
+    public void subscribe() throws IOException, TimeoutException, InterruptedException {
+        try (Connection connection = connectionFactory.newConnection();
                 Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Constants.SENSOR_EXCHANGE_NAME, "direct");
             String queueName = channel.queueDeclare().getQueue();
@@ -59,11 +60,6 @@ public class DataReceiver {
                 }
             }
             channel.basicCancel(tag);
-        } catch (IOException | TimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            Thread.currentThread().interrupt();
         }
     }
 
