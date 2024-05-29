@@ -13,7 +13,9 @@ import com.climateconfort.common.SensorData;
 
 public class AvroSerializer {
 
-    public AvroSerializer() {}
+    private AvroSerializer() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("AvroSerializer class should not be instantiated");
+    }
 
     private static final DatumWriter<SensorDataAvro> sensorDatumWriter = new SpecificDatumWriter<>(
             SensorDataAvro.class);
