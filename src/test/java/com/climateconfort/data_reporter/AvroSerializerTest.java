@@ -3,12 +3,18 @@ package com.climateconfort.data_reporter;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -61,8 +67,18 @@ public class AvroSerializerTest {
     }
 
     @Test
-    void constructorTest() {
-        assertDoesNotThrow(() -> new AvroSerializerTest());
+    void constructorTest() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException {
+        Constructor<AvroSerializer> constructor = AvroSerializer.class.getDeclaredConstructor();
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()));
+        constructor.setAccessible(true);
+        try {
+            constructor.newInstance();
+            fail("Expected UnsupportedOperationException to be thrown");
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            assertTrue(cause instanceof UnsupportedOperationException);
+            assertEquals("AvroSerializer class should not be instantiated", cause.getMessage());
+        }
     }
 
     @Test
