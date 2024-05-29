@@ -83,11 +83,11 @@ public class DataReceiver {
         @Override
         public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
                 throws IOException {
+            ObjectInputStream inputObject = new ObjectInputStream(new ByteArrayInputStream(body));
             try {
-                ObjectInputStream inputObject = new ObjectInputStream(new ByteArrayInputStream(body));
                 SensorData sensorData = (SensorData) inputObject.readObject();
                 dataQueue.add(sensorData);
-            } catch (ClassNotFoundException | IOException e) {
+            } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }
