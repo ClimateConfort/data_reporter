@@ -1,26 +1,21 @@
 package com.climateconfort.data_reporter;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.ObjectStreamConstants;
-import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
 
@@ -40,15 +35,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Envelope;
 
 public class DataReceiverTest {
-
-    private class IncorrectClass implements Serializable {
-        @SuppressWarnings("unused")
-        private String field;
-
-        public IncorrectClass(String field) {
-            this.field = field;
-        }
-    }
 
     private static final int clientId = 1;
 
@@ -175,7 +161,7 @@ public class DataReceiverTest {
         dataOutputStream.writeByte(ObjectStreamConstants.TC_NULL);
 
         
-        assertDoesNotThrow(() -> {
+        assertThrows(RuntimeException.class, () -> {
             consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class),
                 byteArrayOutputStream.toByteArray());
         });

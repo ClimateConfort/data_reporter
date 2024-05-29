@@ -88,7 +88,7 @@ public class DataReceiver {
                 SensorData sensorData = (SensorData) inputObject.readObject();
                 dataQueue.add(sensorData);
             } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
     }
