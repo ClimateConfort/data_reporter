@@ -15,6 +15,7 @@ import org.apache.avro.SchemaBuilder;
 
 import com.climateconfort.common.SensorData;
 import com.climateconfort.data_reporter.avro.AvroSerializer;
+
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
 
 public class Main {
@@ -33,7 +34,7 @@ public class Main {
         FileOutputStream fileOutputStream = new FileOutputStream("data.avro");
         fileOutputStream.write(stream.toByteArray());
         fileOutputStream.close();
-
+      
         Properties properties = new Properties();
         properties.load(new FileInputStream("src/main/resources/application.properties"));
         List<String> publisherIdList = new ArrayList<>();
