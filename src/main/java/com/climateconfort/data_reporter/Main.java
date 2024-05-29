@@ -1,7 +1,6 @@
 package com.climateconfort.data_reporter;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,16 +9,13 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-
 import com.climateconfort.common.SensorData;
 import com.climateconfort.data_reporter.avro.AvroSerializer;
 
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
 
 public class Main {
-    public static void main(String[] args) throws FileNotFoundException, IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
         List<SensorData> sensorDatas = new ArrayList<>();
 
         Random random = new Random();
