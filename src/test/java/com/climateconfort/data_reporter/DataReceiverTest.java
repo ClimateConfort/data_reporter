@@ -1,15 +1,16 @@
 package com.climateconfort.data_reporter;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.ObjectStreamConstants;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,9 +54,9 @@ public class DataReceiverTest {
 
     @Mock
     private Properties properties;
-
     private DataReceiver dataReceiver;
     private List<String> publisherIdList;
+
     private SensorData sensorData;
 
     @BeforeEach
@@ -70,18 +71,6 @@ public class DataReceiverTest {
         dataReceiver = new DataReceiver(getProperties(), publisherIdList);
         sensorData = new SensorData(-1, -1, -1, clientId, -1, -1, -1, -1, -1, -1);
         setField(dataReceiver, "connectionFactory", connectionFactory);
-    }
-
-    private void populatePublisherId() {
-        publisherIdList.add("1-1");
-        publisherIdList.add("1-2");
-        publisherIdList.add("1-3");
-        publisherIdList.add("1-4");
-        publisherIdList.add("1-5");
-        publisherIdList.add("1-6");
-        publisherIdList.add("1-7");
-        publisherIdList.add("1-8");
-        publisherIdList.add("1-9");
     }
 
     @Test
@@ -137,19 +126,57 @@ public class DataReceiverTest {
     }
 
     @Test()
-    void handleDeliveryFailTest() throws IOException, ClassNotFoundException {
+    void handleDeliveryFailTest() throws IOException {
         DataReceiver.SensorDataConsumer consumer = dataReceiver.new SensorDataConsumer(channel);
-        byte[] body = new byte[10];
 
-        // Mock ObjectInputStream to throw IOException
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(body);
-             ObjectInputStream ois = mock(ObjectInputStream.class)) {
-            when(ois.readObject()).thenThrow(new IOException("Test IOException"));
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
 
-            assertDoesNotThrow(() -> {
-                consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class), body);
-            });
-        }
+        // Write the stream header for an object stream
+        dataOutputStream.writeShort(ObjectStreamConstants.STREAM_MAGIC);
+        dataOutputStream.writeShort(ObjectStreamConstants.STREAM_VERSION);
+
+        // Write a TC_OBJECT (0x73) marker
+        dataOutputStream.writeByte(ObjectStreamConstants.TC_OBJECT);
+
+        // Write a TC_CLASSDESC (0x72) marker
+        dataOutputStream.writeByte(ObjectStreamConstants.TC_CLASSDESC);
+
+        // Write a non-existent class name
+        dataOutputStream.writeUTF("com.nonexistent.NonExistentClass");
+
+        // Write class serial version UID
+        dataOutputStream.writeLong(1L);
+
+        // Write the class descriptor flags
+        dataOutputStream.writeByte(ObjectStreamConstants.SC_SERIALIZABLE);
+        
+        // Write the field count (0 for simplicity)
+        dataOutputStream.writeShort(0);
+
+        // Write a TC_ENDBLOCKDATA (0x78) marker
+        dataOutputStream.writeByte(ObjectStreamConstants.TC_ENDBLOCKDATA);
+
+        // Write a TC_NULL (0x70) marker
+        dataOutputStream.writeByte(ObjectStreamConstants.TC_NULL);
+
+        
+        assertThrows(RuntimeException.class, () -> {
+            consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class),
+                byteArrayOutputStream.toByteArray());
+        });
+    }
+
+    private void populatePublisherId() {
+        publisherIdList.add("1-1");
+        publisherIdList.add("1-2");
+        publisherIdList.add("1-3");
+        publisherIdList.add("1-4");
+        publisherIdList.add("1-5");
+        publisherIdList.add("1-6");
+        publisherIdList.add("1-7");
+        publisherIdList.add("1-8");
+        publisherIdList.add("1-9");
     }
 
     private Properties getProperties() {
