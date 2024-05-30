@@ -1,53 +1,48 @@
 
-CREATE KEYSPACE climate_confort
-WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+CREATE KEYSPACE climate_confort WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 
 USE climate_confort;
 
 CREATE TABLE Role (
-    id              UUID PRIMARY KEY,
+    id              int PRIMARY KEY,
     type            INT
 );
 
 CREATE TABLE User (
-    id              UUID PRIMARY KEY,
+    id              int PRIMARY KEY,
     email           TEXT,
     pasahitza       TEXT,
-    role_id         UUID,
-    FOREIGN KEY (role_id) REFERENCES 'Role' (id)
+    role_id         int
 );
 
-
 CREATE TABLE Enpresa (
-    id              UUID PRIMARY KEY,
+    id              int PRIMARY KEY,
     izena           TEXT,
-    user_id         UUID,
-    FOREIGN KEY (user_id) REFERENCES User (id)
+    user_id         int,
 );
 
 CREATE TABLE Eraikina (
-    id              UUID PRIMARY KEY,
+    id              int PRIMARY KEY,
     lokalizazioa    TEXT,
-    enpresa_id      UUID,
-    FOREIGN KEY (enpresa_id) REFERENCES Enpresa (id)
+    enpresa_id      int
 );
 
 CREATE TABLE Gela (
-    id              UUID PRIMARY KEY,
-    eraikina_id     UUID,
-    FOREIGN KEY (eraikina_id) REFERENCES Eraikina (id)
+    id              int PRIMARY KEY,
+    eraikina_id     int
 );
 
 CREATE TABLE Parametroa (
-    id              UUID PRIMARY KEY,
+    id              int PRIMARY KEY,
     mota            TEXT,
     balio_min       FLOAT,
     balio_max       FLOAT,
-    FOREIGN KEY (gela_id) REFERENCES Gela (id)
+    gela_id         int
 );
 
 -- Insert Role
-INSERT INTO role (id, type) VALUES (0, 1), (1, 2);
+INSERT INTO role (id, type) VALUES (0, 1); 
+INSERT INTO role (id, type) VALUES (1, 2);
 
 -- Insert User
 INSERT INTO User (id, email, pasahitza, role_id) VALUES (1, 'admin@climateconfort.com', '$2a$12$/B1jwyTObAv4aBRKLhCVvevvWpE819gwrzjxkuk8uvyLcp2PJjQVO', 1);
@@ -65,29 +60,29 @@ INSERT INTO Eraikina (id, lokalizazioa, enpresa_id) VALUES (3, 'Ubicación3', 2)
 INSERT INTO Eraikina (id, lokalizazioa, enpresa_id) VALUES (4, 'Ubicación4', 2);
 
 -- Insertar Gela
-INSERT INTO Gela (id, eraikina_id) VALUES (1, 15.0, 25.0, 1);
-INSERT INTO Gela (id, eraikina_id) VALUES (2, 16.0, 26.0, 1);
-INSERT INTO Gela (id, eraikina_id) VALUES (3, 17.0, 27.0, 2);
-INSERT INTO Gela (id, eraikina_id) VALUES (4, 18.0, 28.0, 2);
-INSERT INTO Gela (id, eraikina_id) VALUES (5, 19.0, 29.0, 3);
-INSERT INTO Gela (id, eraikina_id) VALUES (6, 20.0, 30.0, 3);
-INSERT INTO Gela (id, eraikina_id) VALUES (7, 21.0, 31.0, 4);
-INSERT INTO Gela (id, eraikina_id) VALUES (8, 22.0, 32.0, 4);
+INSERT INTO Gela (id, eraikina_id) VALUES (1, 1);
+INSERT INTO Gela (id, eraikina_id) VALUES (2, 1);
+INSERT INTO Gela (id, eraikina_id) VALUES (3, 2);
+INSERT INTO Gela (id, eraikina_id) VALUES (4, 2);
+INSERT INTO Gela (id, eraikina_id) VALUES (5, 3);
+INSERT INTO Gela (id, eraikina_id) VALUES (6, 3);
+INSERT INTO Gela (id, eraikina_id) VALUES (7, 4);
+INSERT INTO Gela (id, eraikina_id) VALUES (8, 4);
 
 -- Insertar Parametroa
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 15.3, 25.4, 1);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 12.0, 27.4, 1);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 2);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 2);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 3);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 3);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 4);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 4);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 15.3, 25.4, 5);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 12.0, 27.4, 5);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 6);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 6);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 7);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 7);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'TMP', 19.3, 25.5, 8);
-INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (uuid(), 'AIR', 11.8, 22.3, 8);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (1, 'TMP', 15.3, 25.4, 1);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (2, 'AIR', 12.0, 27.4, 1);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (3, 'TMP', 19.3, 25.5, 2);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (4, 'AIR', 11.8, 22.3, 2);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (5, 'TMP', 19.3, 25.5, 3);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (6, 'AIR', 11.8, 22.3, 3);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (7, 'TMP', 19.3, 25.5, 4);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (8, 'AIR', 11.8, 22.3, 4);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (9, 'TMP', 15.3, 25.4, 5);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (10, 'AIR', 12.0, 27.4, 5);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (11, 'TMP', 19.3, 25.5, 6);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (12, 'AIR', 11.8, 22.3, 6);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (13, 'TMP', 19.3, 25.5, 7);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (14, 'AIR', 11.8, 22.3, 7);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (15, 'TMP', 19.3, 25.5, 8);
+INSERT INTO Parametroa (id, mota, balio_min, balio_max, gela_id) VALUES (16, 'AIR', 11.8, 22.3, 8);
