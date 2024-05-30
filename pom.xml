@@ -14,10 +14,11 @@
     </properties>    
 
     <dependencies>
+
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
-            <version>3.11.0</version>
+            <version>3.11.5</version>
         </dependency>
 
         <dependency>
@@ -25,11 +26,15 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.30</version>
         </dependency>
+
+        <!-- LOGs -->
+        <!--
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -43,6 +48,21 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.32</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- DAO -->
+        <dependency>
+            <groupId>com.datastax.oss</groupId>
+            <artifactId>java-driver-mapper-runtime</artifactId>
+            <version>4.17.0</version>
+        </dependency>
+
         <!-- Debug -->
         <dependency>
             <groupId>com.esri.geometry</groupId>
@@ -52,20 +72,16 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.68.Final</version>
+            <version>4.1.110.Final</version>
         </dependency>
-        <dependency>
+
+        <!--<dependency>
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-core</artifactId>
             <version>4.17.0</version>
-        </dependency>
+        </dependency>-->
         
         <!-- Para el testing the cassandra -->
-        <dependency> 
-            <groupId>org.testcontainers</groupId>
-            <artifactId>cassandra</artifactId>
-            <version>1.15.3</version>
-        </dependency>
         <dependency> 
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -80,6 +96,7 @@
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
+
         <!-- JUnit -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -89,13 +106,11 @@
         </dependency>
 
         <!-- GCP -->
-
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-compute</artifactId>
             <version>1.51.0</version>
         </dependency>
-       
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
@@ -106,8 +121,8 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>31.1-jre</version>
-        </dependency>
+            <version>33.2.0-jre</version>
+        </dependency> 
         
     </dependencies>
 

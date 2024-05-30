@@ -5,35 +5,45 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import com.climateconfort.data_reporter.cassandra.CassandraConnector;
 import com.climateconfort.data_reporter.cassandra.CassandraConnector.PublicIpAddressTranslator;
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.dao.EraikinaDao;
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.dao.impl.EraikinaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.model.Eraikina;
+import com.climateconfort.data_reporter.cassandra.domain.gela.dao.GelaDao;
+import com.climateconfort.data_reporter.cassandra.domain.gela.dao.impl.GelaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.gela.model.Gela;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.dao.ParametroaDao;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.dao.impl.ParametroaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.model.Parametroa;
+
 import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Cluster;
 
 public class CassandraConnectorTest 
 {
+    CassandraConnector cassandraConnector;
+
     Map<String, String[]> mockAddress;
 
     @Mock
@@ -55,10 +65,25 @@ public class CassandraConnectorTest
     ResultSet mockParametroResultSet;
 
     @Mock
-    List<Row> mockRow;
+    EraikinaDao mockEraikinaDao;
+
+    @Mock
+    EraikinaDaoImpl mockEraikinaDaoImpl;
+
+    @Mock
+    GelaDao mockGelaDao;
+
+    @Mock
+    GelaDaoImpl mockGelaDaoImpl;
+
+    @Mock
+    ParametroaDao mockParametroaDao;
+
+    @Mock
+    ParametroaDaoImpl mockParametroaDaoImpl;
 
     @BeforeEach
-    public void setUp()
+    public void setUp() throws FileNotFoundException, IOException
     {
         MockitoAnnotations.openMocks(this);
 
@@ -69,10 +94,6 @@ public class CassandraConnectorTest
         mockAddress.put("node2", new String[] {"10.0.0.2", "35.0.0.2"});
         mockAddress.put("node3", new String[] {"10.0.0.3", "35.0.0.3"});
         
-        // mockCluster = mock(Cluster.class);
-        mockBuilder = mock(Builder.class);
-        mockSession = mock(Session.class);
-
         staticMockCluster.when(() -> Cluster.builder()).thenReturn(mockBuilder);
         when(mockBuilder.addContactPoint(anyString())).thenReturn(mockBuilder);
         when(mockBuilder.withPort(anyInt())).thenReturn(mockBuilder);
@@ -81,6 +102,8 @@ public class CassandraConnectorTest
 
         when(mockBuilder.build()).thenReturn(mockCluster);
         when(mockCluster.connect()).thenReturn(mockSession);
+
+        cassandraConnector = new CassandraConnector(1, mockAddress);
     }
 
     @Test
@@ -89,23 +112,31 @@ public class CassandraConnectorTest
         CassandraConnector cassandraConnector = new CassandraConnector(1, mockAddress);
 
         assertNotNull(cassandraConnector);
-        assertEquals(cassandraConnector.getSession(), mockSession); 
+        assertEquals(mockSession, cassandraConnector.getSession()); 
     }
 
     @Test
     public void getParametersTest()
     {
-        // mockRow = mock(Row.class);
 
-        when(mockEraikinResultSet.iterator()).thenReturn(mockRow.iterator());
+        when(mockEraikinaDaoImpl.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
+        when(mockGelaDaoImpl.findByEraikinaId(anyInt())).thenReturn(Collections.singletonList(new Gela(1, 1)));
+        when(mockParametroaDaoImpl.findByGelaId(anyInt())).thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
+        
+        // mockEraikinaDao = new EraikinaDaoImpl(mockSession);
 
-        when(mockSession.execute(anyString()))
-            .thenReturn(null)
-            .thenReturn(mockEraikinResultSet)
-            .thenReturn(mockGelaResultSet)
-            .thenReturn(mockParametroResultSet);
+        when(mockEraikinaDao.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
+        when(mockGelaDao.findByEraikinaId(anyInt())).thenReturn(Collections.singletonList(new Gela(1, 1)));
+        when(mockParametroaDao.findByGelaId(anyInt())).thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
 
+        ResultSet mockResultSet = mock(ResultSet.class);
+        when(mockSession.execute(anyString())).thenReturn(mockResultSet);
+        Row mockRow = mock(Row.class);
+        when(mockResultSet.all()).thenReturn(Collections.singletonList(mockRow));
 
+        // Map<Integer, Map<Integer, Map<String, Float[]>>> parametersMap = cassandraConnector.getParameters();
+        
+        // assertEquals(parametersMap.size(), 1);
     }
 
 }

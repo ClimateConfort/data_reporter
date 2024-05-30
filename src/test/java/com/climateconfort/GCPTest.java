@@ -4,12 +4,10 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
@@ -56,17 +54,8 @@ class GCPTest
         MockitoAnnotations.openMocks(this);
         gcp = new GCP();
 
-        MockedStatic<GoogleCredentials> mockedGoogleCredentials = mockStatic(GoogleCredentials.class);
         MockedStatic<InstancesClient> mockedInstancesClient = mockStatic(InstancesClient.class);
 
-        mockInstance = mock(Instance.class);
-        mockNetworkInterface = mock(NetworkInterface.class);
-        mockAccessConfig = mock(AccessConfig.class);
-        mockResponse = mock(InstancesClient.AggregatedListPagedResponse.class);
-        mockCredentials = mock(GoogleCredentials.class);
-        mockInstancesScopedList = mock(InstancesScopedList.class);
-
-        mockedGoogleCredentials.when(() ->  GoogleCredentials.fromStream(any(InputStream.class))).thenReturn(mockCredentials);
         mockedInstancesClient.when(() ->  InstancesClient.create(any(InstancesSettings.class))).thenReturn(mockInstancesClient);
         when(mockInstancesClient.aggregatedList(any(AggregatedListInstancesRequest.class))).thenReturn(mockResponse);
 
@@ -75,12 +64,8 @@ class GCPTest
         when(mockAccessConfig.getNatIP()).thenReturn("35.0.0.1");
         when(mockNetworkInterface.getAccessConfigsList()).thenReturn(Collections.singletonList(mockAccessConfig));
         when(mockInstance.getNetworkInterfacesList()).thenReturn(Collections.singletonList(mockNetworkInterface));
-   
-        List<Instance> instanceList = mock(List.class);
-        instanceList.add(mockInstance);
 
         when(mockInstancesScopedList.getInstancesList()).thenReturn(List.of(mockInstance));
-        when(instanceList.isEmpty()).thenReturn(false);
         Iterable<Map.Entry<String, InstancesScopedList>> mockZoneInstances;
         Map.Entry<String, InstancesScopedList> entry = new AbstractMap.SimpleEntry<>("zones/us-central1-a", mockInstancesScopedList);
         mockZoneInstances = Collections.singletonList(entry);

@@ -5,30 +5,40 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.dao.EraikinaDao;
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.dao.impl.EraikinaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.eraikina.model.Eraikina;
+import com.climateconfort.data_reporter.cassandra.domain.gela.dao.GelaDao;
+import com.climateconfort.data_reporter.cassandra.domain.gela.dao.impl.GelaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.gela.model.Gela;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.dao.ParametroaDao;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.dao.impl.ParametroaDaoImpl;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.model.Parametroa;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Cluster.Builder;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.policies.AddressTranslator;
 
 public class CassandraConnector 
 {
-    private final String FICHEROPROPIEDADES = "src\\main\\java\\com\\climateconfort\\resources\\application.properties";
-    private final String ERAIKIN_QUERY = "SELECT id FROM climate_confort.Eraikina WHERE enpresa_id=";
-    private final String GELA_QUERY = "SELECT id FROM climate_confort.Gela WHERE eraikina_id=";
-    private final String PARAMETRO_QUERY = "SELECT mota, balio_min, balio_max FROM climate_confort.Parametroa WHERE gela_id=";
+    private final String PROPERTY_FILE = "src\\main\\java\\com\\climateconfort\\resources\\application.properties";
     private final Integer PORT = 9042;
 
-    private Map<InetSocketAddress, InetSocketAddress> addressMap;
-    private Cluster cluster;
-    private Session session;
-    private Properties prop;
+    private EraikinaDao         eraikinaDao;
+    private GelaDao             gelaDao;
+    private ParametroaDao       parametroaDao;
 
-    private int enpresa_id;
+    private Map<InetSocketAddress, InetSocketAddress> addressMap;
+    private Cluster             cluster;
+    private Session             session;
+    private Properties          prop;
+
+    private int                 enpresa_id;
 
     /**
      * @throws  IOException 
@@ -40,18 +50,22 @@ public class CassandraConnector
      */
     public CassandraConnector(int enpresa_id, Map<String, String[]> addresses) throws FileNotFoundException, IOException 
     {
+        this.enpresa_id = enpresa_id;
         this.addressMap = Map.of(
             new InetSocketAddress(addresses.get("node1")[0], PORT), new InetSocketAddress(addresses.get("node1")[1], PORT),
             new InetSocketAddress(addresses.get("node2")[0], PORT), new InetSocketAddress(addresses.get("node2")[1], PORT),
             new InetSocketAddress(addresses.get("node3")[0], PORT), new InetSocketAddress(addresses.get("node3")[1], PORT)
         );
 
-        this.enpresa_id = enpresa_id;
         prop = new Properties();
-        prop.load(new FileInputStream(FICHEROPROPIEDADES));
+        prop.load(new FileInputStream(PROPERTY_FILE));
         
         /* Konektatu lehenengo nodoaren IP publikora */
         connect(addresses.get("node1")[1]);
+
+        eraikinaDao = new EraikinaDaoImpl(session);
+        gelaDao = new GelaDaoImpl(session);
+        parametroaDao = new ParametroaDaoImpl(session); 
     }
 
     public void connect(String node) 
@@ -60,8 +74,8 @@ public class CassandraConnector
         String password = prop.getProperty("spring.datasource.cassandra_password");
 
         Builder builder = Cluster.builder().addContactPoint(node).withPort(PORT)
-        .withCredentials(user, password)
-        .withAddressTranslator(new PublicIpAddressTranslator(addressMap));
+            .withCredentials(user, password)
+            .withAddressTranslator(new PublicIpAddressTranslator(addressMap));
 
         cluster = builder.build();
         session = cluster.connect();
@@ -72,41 +86,31 @@ public class CassandraConnector
      */
     public Map<Integer, Map<Integer, Map<String, Float[]>>> getParameters() 
     {
-        String database = prop.getProperty("spring.datasource.cassandra_database=climate_confort");
+        String database = prop.getProperty("spring.datasource.cassandra_database");
         session.execute("use " + database + ";");
 
-        Map<Integer, Map<Integer, Map<String, Float[]>>> eraikinak = new HashMap<>();
+        List<Eraikina> eraikinaList = eraikinaDao.findByEnpresaId(enpresa_id);
 
-        ResultSet eraiknResultSet = session.execute(ERAIKIN_QUERY + enpresa_id + ";");
-        for (Row eraikina_row : eraiknResultSet) 
+        Map<Integer, Map<Integer, Map<String, Float[]>>> eraikinaMap = new HashMap<>();
+        for (Eraikina iEraikina : eraikinaList)
         {
-            Map<Integer, Map<String, Float[]>> gelak = new HashMap<>();
+            List<Gela> gelaList = gelaDao.findByEraikinaId(iEraikina.getId());
 
-             /* 'Gela' taulan query-a exekutatu eta bere balioak mapan gorde */
-            int eraikina_id = eraikina_row.getInt("id");   
-            ResultSet gelaResultSet = session.execute(GELA_QUERY + eraikina_id + ";");
-            for (Row gela_row : gelaResultSet) 
+            Map<Integer, Map<String, Float[]>> gelaMap = new HashMap<>();
+            for (Gela iGela : gelaList)
             {
-                Map<String, Float[]> parametroak = new HashMap<>();
-
-                /* 'Parametroa' taulan query-a exekutatu eta bere balioak mapan gorde */
-                int gela_id = gela_row.getInt("id");
-                ResultSet parametroResultSet = session.execute(PARAMETRO_QUERY + gela_id + ";");
-                for (Row parametro_row : parametroResultSet)
+                List<Parametroa> parametroaList = parametroaDao.findByGelaId(iGela.getId()); 
+                
+                Map<String, Float[]> parametroaMap = new HashMap<>();
+                for (Parametroa iParametroa : parametroaList)
                 {
-                    String mota = parametro_row.getString("mota");
-                    Float[] temporal_parameters = new Float[2];
-
-                    temporal_parameters[0] = parametro_row.getFloat("balio_min");
-                    temporal_parameters[1] = parametro_row.getFloat("balio_max");
-
-                    parametroak.put(mota, temporal_parameters);
+                    parametroaMap.put(iParametroa.getMota(), new Float[] {iParametroa.getBalio_min(), iParametroa.getBalio_max()});
                 }
-                gelak.put(gela_id, parametroak);
+                gelaMap.put(iGela.getId(), parametroaMap);
             }
-            eraikinak.put(eraikina_id, gelak);
+            eraikinaMap.put(iEraikina.getId(), gelaMap);
         }
-        return eraikinak;
+        return eraikinaMap;
     }
 
     public Session getSession() 
@@ -140,7 +144,5 @@ public class CassandraConnector
         @Override
         public void init(Cluster cluster) {  }
     }
-
-    
 
 }
