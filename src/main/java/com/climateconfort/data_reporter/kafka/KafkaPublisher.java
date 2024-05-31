@@ -12,8 +12,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 public class KafkaPublisher 
 {
-    Properties kafkaProperties;
-    Producer<String, String> kafkaProducer;
+    private final String KEY = "SensorData";
+    
+    private Properties kafkaProperties;
+    private Producer<String, String> kafkaProducer;
     
     public KafkaPublisher(Properties properties) throws FileNotFoundException, IOException
     {
@@ -31,7 +33,7 @@ public class KafkaPublisher
 
     public void sendData(String topic, String payload)
     {
-        ProducerRecord<String, String> record = new ProducerRecord<>(topic, "data", payload);
+        ProducerRecord<String, String> record = new ProducerRecord<>(topic, KEY, payload);
 
         kafkaProducer.send(record);
     }
