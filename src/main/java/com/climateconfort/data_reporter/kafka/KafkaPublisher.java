@@ -1,50 +1,39 @@
 package com.climateconfort.data_reporter.kafka;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 
-public class KafkaPublisher {
-    private final String PROPERTIES_FILE = "application.properties";
-    private final String TOPIC = "mi-topic";
-
-    Properties properties = new Properties();
-    Producer<String, String> kafkaPublisher;
+public class KafkaPublisher 
+{
+    Properties kafkaProperties;
+    Producer<String, String> kafkaProducer;
     
-    /*
-     * 
-     */
-    public KafkaPublisher() throws FileNotFoundException, IOException
+    public KafkaPublisher(Properties properties) throws FileNotFoundException, IOException
     {
-        properties.load(new FileInputStream(PROPERTIES_FILE));
-        // properties.put("bootstrap.servers", IP);
-        properties.put("acks", "all");
-        properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        kafkaProperties = new Properties();
 
-        kafkaPublisher = new KafkaProducer<>(properties);
+        String kafkaIP = properties.getProperty("kafka_broker_ip");
+        String kafkaPort = properties.getProperty("kafka_broker_port");
+
+        kafkaProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaIP + ":" + kafkaPort);
+        kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        kafkaProducer = new KafkaProducer<>(kafkaProperties);
     }
 
-    /**
-     * @brief Kafka zerbitzari mezuaren sorrera eta bidalketa gauzatzen duen funtzioa
-     */
-    public void sendData() 
+    public void sendData(String topic, String payload)
     {
-        /* ajustar el mensaje a lo que queremos mandar */
-        ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, "key", "value");
-     
-        /* Otra posible implementacion de la creacion del mensaje */
-        // MyData data = new MyData();
-        // data.setField1("valor1");
-        // data.setField2(42);
-        // String json = new Gson().toJson(data);
+        ProducerRecord<String, String> record = new ProducerRecord<>(topic, "data", payload);
 
-        kafkaPublisher.send(record);
+        kafkaProducer.send(record);
     }
 
 }
