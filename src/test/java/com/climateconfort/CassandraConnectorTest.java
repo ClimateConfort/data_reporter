@@ -9,15 +9,12 @@ import static org.mockito.Mockito.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -118,13 +115,6 @@ public class CassandraConnectorTest
     @Test
     public void getParametersTest()
     {
-
-        when(mockEraikinaDaoImpl.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
-        when(mockGelaDaoImpl.findByEraikinaId(anyInt())).thenReturn(Collections.singletonList(new Gela(1, 1)));
-        when(mockParametroaDaoImpl.findByGelaId(anyInt())).thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
-        
-        // mockEraikinaDao = new EraikinaDaoImpl(mockSession);
-
         when(mockEraikinaDao.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
         when(mockGelaDao.findByEraikinaId(anyInt())).thenReturn(Collections.singletonList(new Gela(1, 1)));
         when(mockParametroaDao.findByGelaId(anyInt())).thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
