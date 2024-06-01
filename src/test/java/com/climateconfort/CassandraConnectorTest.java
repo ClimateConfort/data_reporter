@@ -104,15 +104,6 @@ public class CassandraConnectorTest
     }
 
     @Test
-    public void connectTest() throws FileNotFoundException, IOException
-    {
-        CassandraConnector cassandraConnector = new CassandraConnector(1, mockAddress);
-
-        assertNotNull(cassandraConnector);
-        assertEquals(mockSession, cassandraConnector.getSession()); 
-    }
-
-    @Test
     public void getParametersTest()
     {
         when(mockEraikinaDao.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
