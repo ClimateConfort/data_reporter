@@ -17,7 +17,7 @@ import com.google.cloud.compute.v1.NetworkInterface;
 
 public class GCP 
 {
-    private final String CREDENTIALS_PATH = "src\\main\\java\\com\\climateconfort\\resources\\gcp_certificate\\pbl6-422712-4d2d1628f0a5.json";
+    private final String CREDENTIALS_PATH = "src/main/java/com/climateconfort/resources/gcp_certificate/pbl6-422712-4d2d1628f0a5.json";
     private final String PROJECT = "pbl6-422712";
     private HashMap<String, String[]> IP_map;
 
