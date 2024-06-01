@@ -26,7 +26,7 @@ import com.datastax.driver.core.policies.AddressTranslator;
 
 public class CassandraConnector 
 {
-    private final String PROPERTY_FILE = "src\\main\\java\\com\\climateconfort\\resources\\application.properties";
+    private final String PROPERTY_FILE = "src/main/java/com/climateconfort/resources/application.properties";
     private final Integer PORT = 9042;
 
     private EraikinaDao         eraikinaDao;
@@ -59,13 +59,13 @@ public class CassandraConnector
 
         prop = new Properties();
         prop.load(new FileInputStream(PROPERTY_FILE));
-        
-        /* Konektatu lehenengo nodoaren IP publikora */
-        connect(addresses.get("node1")[1]);
 
         eraikinaDao = new EraikinaDaoImpl(session);
         gelaDao = new GelaDaoImpl(session);
-        parametroaDao = new ParametroaDaoImpl(session); 
+        parametroaDao = new ParametroaDaoImpl(session);
+        
+        /* Konektatu lehenengo nodoaren IP publikora */
+        connect(addresses.get("node1")[1]);
     }
 
     public void connect(String node) 
