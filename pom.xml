@@ -115,6 +115,11 @@
                     <target>17</target>
                     <annotationProcessorPaths>
                         <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.32</version>
+                        </path>
+                        <path>
                             <groupId>com.datastax.oss</groupId>
                             <artifactId>java-driver-mapper-processor</artifactId>
                             <version>4.17.0</version>
@@ -131,6 +136,12 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>com/climateconfort/data_reporter/cassandra/domain/**/*__MapperGenerated*</exclude>
+                        <exclude>com/climateconfort/data_reporter/cassandra/domain/**/*MapperBuilder*</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>coverage-initialize</id>
@@ -140,7 +151,7 @@
                     </execution>
                     <execution>
                         <id>jacoco-report</id>
-                        <phase>package</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
