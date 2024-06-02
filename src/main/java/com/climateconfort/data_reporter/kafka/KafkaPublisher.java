@@ -17,8 +17,8 @@ public class KafkaPublisher {
     public KafkaPublisher(Properties properties) {
         kafkaProperties = new Properties();
 
-        String kafkaIP = properties.getProperty("kafka_broker_ip");
-        String kafkaPort = properties.getProperty("kafka_broker_port");
+        String kafkaIP = properties.getProperty("kafka.ip");
+        String kafkaPort = properties.getProperty("kafka.port");
 
         kafkaProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaIP + ":" + kafkaPort);
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());

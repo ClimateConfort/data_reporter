@@ -28,7 +28,7 @@ public class CassandraConnector implements AutoCloseable {
     private final ParametroaDao parametroaDao;
 
     public CassandraConnector(Properties properties) {
-        this.clientId = Integer.parseInt(properties.getProperty("climate_confort.client_id", "NaN"));
+        this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         String username = properties.getProperty("cassandra.username", "cassandra");
         String password = properties.getProperty("cassandra.password", "cassandra");
         String datacenterName = properties.getProperty("cassandra.datacenter", "datacenter1");
