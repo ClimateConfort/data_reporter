@@ -14,8 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @CqlName("Gela")
-public class Gela 
-{
+public class Gela {
     int id;
-    int eraikina_id;
+    int eraikinaId;
 }

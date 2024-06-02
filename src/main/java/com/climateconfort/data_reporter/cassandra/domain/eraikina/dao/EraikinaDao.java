@@ -6,7 +6,6 @@ import com.climateconfort.data_reporter.cassandra.domain.eraikina.model.Eraikina
 import com.datastax.oss.driver.api.mapper.annotations.Dao;
 
 @Dao
-public interface EraikinaDao 
-{
-    List<Eraikina> findByEnpresaId(int enpresa_id);
+public interface EraikinaDao {
+    List<Eraikina> findByEnpresaId(int enpresaId);
 }
