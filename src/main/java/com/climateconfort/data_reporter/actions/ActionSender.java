@@ -15,10 +15,10 @@ public class ActionSender {
 
     public ActionSender(Properties properties) {
         this.connectionFactory = new ConnectionFactory();
-        this.connectionFactory.setHost(properties.getProperty("rabbitmq_server_ip", "localhost"));
-        this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq_server_port", "5672")));
-        this.connectionFactory.setUsername(properties.getProperty("rabbitmq_server_user", "guest"));
-        this.connectionFactory.setPassword(properties.getProperty("rabbitmq_server_password", "guest"));
+        this.connectionFactory.setHost(properties.getProperty("rabbitmq.server.ip", "localhost"));
+        this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq.server.port", "5672")));
+        this.connectionFactory.setUsername(properties.getProperty("rabbitmq.server.user", "guest"));
+        this.connectionFactory.setPassword(properties.getProperty("rabbitmq.server.password", "guest"));
     }
 
     public void publish(long roomId, long buildingId, String action) throws IOException, TimeoutException {
