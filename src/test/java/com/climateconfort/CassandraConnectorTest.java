@@ -1,7 +1,5 @@
 package com.climateconfort;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,8 +35,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Cluster;
 
-public class CassandraConnectorTest 
-{
+class CassandraConnectorTest {
     CassandraConnector cassandraConnector;
 
     Map<String, String[]> mockAddress;
@@ -54,10 +51,10 @@ public class CassandraConnectorTest
 
     @Mock
     ResultSet mockEraikinResultSet;
-    
+
     @Mock
     ResultSet mockGelaResultSet;
-    
+
     @Mock
     ResultSet mockParametroResultSet;
 
@@ -80,17 +77,16 @@ public class CassandraConnectorTest
     ParametroaDaoImpl mockParametroaDaoImpl;
 
     @BeforeEach
-    public void setUp() throws FileNotFoundException, IOException
-    {
+    public void setUp() throws FileNotFoundException, IOException {
         MockitoAnnotations.openMocks(this);
 
-        MockedStatic<Cluster> staticMockCluster = mockStatic(Cluster.class); 
+        MockedStatic<Cluster> staticMockCluster = mockStatic(Cluster.class);
 
         mockAddress = new HashMap<>();
-        mockAddress.put("node1", new String[] {"10.0.0.1", "35.0.0.1"});
-        mockAddress.put("node2", new String[] {"10.0.0.2", "35.0.0.2"});
-        mockAddress.put("node3", new String[] {"10.0.0.3", "35.0.0.3"});
-        
+        mockAddress.put("node1", new String[] { "10.0.0.1", "35.0.0.1" });
+        mockAddress.put("node2", new String[] { "10.0.0.2", "35.0.0.2" });
+        mockAddress.put("node3", new String[] { "10.0.0.3", "35.0.0.3" });
+
         staticMockCluster.when(() -> Cluster.builder()).thenReturn(mockBuilder);
         when(mockBuilder.addContactPoint(anyString())).thenReturn(mockBuilder);
         when(mockBuilder.withPort(anyInt())).thenReturn(mockBuilder);
@@ -104,19 +100,21 @@ public class CassandraConnectorTest
     }
 
     @Test
-    public void getParametersTest()
-    {
-        when(mockEraikinaDao.findByEnpresaId(anyInt())).thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
+    void getParametersTest() {
+        when(mockEraikinaDao.findByEnpresaId(anyInt()))
+                .thenReturn(Collections.singletonList(new Eraikina(1, "LOKALIZAZIOA", 1)));
         when(mockGelaDao.findByEraikinaId(anyInt())).thenReturn(Collections.singletonList(new Gela(1, 1)));
-        when(mockParametroaDao.findByGelaId(anyInt())).thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
+        when(mockParametroaDao.findByGelaId(anyInt()))
+                .thenReturn(Collections.singletonList(new Parametroa(1, "tmp", 10.0f, 20.0f, 1)));
 
         ResultSet mockResultSet = mock(ResultSet.class);
         when(mockSession.execute(anyString())).thenReturn(mockResultSet);
         Row mockRow = mock(Row.class);
         when(mockResultSet.all()).thenReturn(Collections.singletonList(mockRow));
 
-        // Map<Integer, Map<Integer, Map<String, Float[]>>> parametersMap = cassandraConnector.getParameters();
-        
+        // Map<Integer, Map<Integer, Map<String, Float[]>>> parametersMap =
+        // cassandraConnector.getParameters();
+
         // assertEquals(parametersMap.size(), 1);
     }
 

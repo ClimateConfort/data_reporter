@@ -25,8 +25,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
-public class DaoTest
-{
+class DaoTest {
     @Mock
     private Session mockSession;
 
@@ -36,13 +35,12 @@ public class DaoTest
     @Mock
     private Row mockRow;
 
-    private EraikinaDaoImpl     eraikinaDao;
-    private GelaDaoImpl         gelaDao;
-    private ParametroaDaoImpl   parametroaDao;
+    private EraikinaDaoImpl eraikinaDao;
+    private GelaDaoImpl gelaDao;
+    private ParametroaDaoImpl parametroaDao;
 
     @BeforeEach
-    void setUp() throws IOException 
-    {
+    void setUp() throws IOException {
         MockitoAnnotations.openMocks(this);
 
         eraikinaDao = new EraikinaDaoImpl(mockSession);
@@ -51,8 +49,7 @@ public class DaoTest
     }
 
     @Test
-    public void findByEnpresaIdTest()
-    {
+    void findByEnpresaIdTest() {
         when(mockSession.execute(anyString(), eq(1))).thenReturn(mockResultSet);
 
         List<Row> mockRows = new ArrayList<>();
@@ -76,8 +73,7 @@ public class DaoTest
     }
 
     @Test
-    public void findByEraikinaIdTest()
-    {
+    void findByEraikinaIdTest() {
         when(mockSession.execute(anyString(), eq(1))).thenReturn(mockResultSet);
         List<Row> mockRows = new ArrayList<>();
         mockRows.add(mockRow);
@@ -96,9 +92,8 @@ public class DaoTest
         verify(mockRow).getInt("id");
     }
 
-  @Test
-    public void testFindByGelaId() 
-    {
+    @Test
+    void testFindByGelaId() {
         when(mockSession.execute(anyString(), eq(1))).thenReturn(mockResultSet);
         List<Row> mockRows = new ArrayList<>();
         mockRows.add(mockRow);
@@ -114,8 +109,8 @@ public class DaoTest
         assertEquals(1, result.size());
         Parametroa parametroa = result.get(0);
         assertEquals(1, parametroa.getId());
-        assertEquals(100.0f, parametroa.getBalio_max(), 0.01);
-        assertEquals(10.0f, parametroa.getBalio_min(), 0.01);
+        assertEquals(100.0f, parametroa.getBalioMax(), 0.01);
+        assertEquals(10.0f, parametroa.getBalioMin(), 0.01);
         assertEquals("Temperature", parametroa.getMota());
 
         verify(mockSession).execute(anyString(), eq(1));
@@ -125,5 +120,4 @@ public class DaoTest
         verify(mockRow).getFloat("balio_min");
         verify(mockRow).getString("mota");
     }
-
 }

@@ -9,24 +9,21 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
-public class EraikinaDaoImpl implements EraikinaDao 
-{
+public class EraikinaDaoImpl implements EraikinaDao {
     private Session session;
 
-    public EraikinaDaoImpl(Session session)
-    {
+    public EraikinaDaoImpl(Session session) {
         this.session = session;
     }
 
     @Override
-    public List<Eraikina> findByEnpresaId(int enpresa_id) {
+    public List<Eraikina> findByEnpresaId(int enpresaId) {
         String query = "SELECT * FROM Eraikina WHERE enpresa_id = ? ALLOW FILTERING";
-        ResultSet result = session.execute(query, enpresa_id);
-        
+        ResultSet result = session.execute(query, enpresaId);
+
         List<Eraikina> eraikinak = new ArrayList<>();
 
-        for (Row row : result.all()) 
-        {
+        for (Row row : result.all()) {
             Eraikina eraikina = new Eraikina();
             eraikina.setId(row.getInt("id"));
             eraikina.setLokalizazioa(row.getString("lokalizazioa"));
@@ -36,5 +33,5 @@ public class EraikinaDaoImpl implements EraikinaDao
 
         return eraikinak;
     }
-    
+
 }

@@ -1,7 +1,5 @@
 package com.climateconfort.data_reporter.kafka;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -10,15 +8,13 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-public class KafkaPublisher 
-{
-    private final String KEY = "SensorData";
-    
+public class KafkaPublisher {
+    private static final String KEY = "SensorData";
+
     private Properties kafkaProperties;
     private Producer<String, String> kafkaProducer;
-    
-    public KafkaPublisher(Properties properties) throws FileNotFoundException, IOException
-    {
+
+    public KafkaPublisher(Properties properties) {
         kafkaProperties = new Properties();
 
         String kafkaIP = properties.getProperty("kafka_broker_ip");
@@ -31,11 +27,10 @@ public class KafkaPublisher
         kafkaProducer = new KafkaProducer<>(kafkaProperties);
     }
 
-    public void sendData(String topic, String payload)
-    {
-        ProducerRecord<String, String> record = new ProducerRecord<>(topic, KEY, payload);
+    public void sendData(String topic, String payload) {
+        ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, KEY, payload);
 
-        kafkaProducer.send(record);
+        kafkaProducer.send(producerRecord);
     }
 
 }
