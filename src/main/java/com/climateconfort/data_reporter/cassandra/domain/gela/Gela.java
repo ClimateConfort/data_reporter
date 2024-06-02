@@ -1,20 +1,19 @@
-package com.climateconfort.data_reporter.cassandra.domain.gela.model;
+package com.climateconfort.data_reporter.cassandra.domain.gela;
 
 import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
+import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@CqlName("Gela")
 public class Gela {
+    @PartitionKey
     int id;
+
+    @CqlName("eraikina_id")
     int eraikinaId;
 }

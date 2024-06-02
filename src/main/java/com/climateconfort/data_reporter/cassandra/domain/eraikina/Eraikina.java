@@ -1,21 +1,21 @@
-package com.climateconfort.data_reporter.cassandra.domain.eraikina.model;
+package com.climateconfort.data_reporter.cassandra.domain.eraikina;
 
 import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
+import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@CqlName("Eraikina")
 public class Eraikina {
+    @PartitionKey
     int id;
+    
     String lokalizazioa;
+
+    @CqlName("enpresa_id")
     int enpresaId;
 }
