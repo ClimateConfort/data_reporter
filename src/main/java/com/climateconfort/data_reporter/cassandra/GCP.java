@@ -15,22 +15,19 @@ import com.google.cloud.compute.v1.InstancesScopedList;
 import com.google.cloud.compute.v1.InstancesSettings;
 import com.google.cloud.compute.v1.NetworkInterface;
 
-public class GCP 
-{
-    private final String CREDENTIALS_PATH = "src/main/java/com/climateconfort/resources/gcp_certificate/pbl6-422712-4d2d1628f0a5.json";
-    private final String PROJECT = "pbl6-422712";
-    private HashMap<String, String[]> IP_map;
+public class GCP {
+    private static final String CREDENTIALS_PATH = "src/main/java/com/climateconfort/resources/gcp_certificate/pbl6-422712-4d2d1628f0a5.json";
+    private static final String PROJECT = "pbl6-422712";
+    private HashMap<String, String[]> ipMap;
 
-    public GCP() 
-    { 
-        IP_map = new HashMap<>();
+    public GCP() {
+        ipMap = new HashMap<>();
     }
 
-    public Map<String, String[]> listInstances() throws IOException 
-    {
-        InputStream iStream = new FileInputStream(CREDENTIALS_PATH);
+    public Map<String, String[]> listInstances() throws IOException {
+        InputStream inputStream = new FileInputStream(CREDENTIALS_PATH);
 
-        GoogleCredentials credentials = GoogleCredentials.fromStream(iStream);
+        GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
 
         // Configurar el cliente de Compute Engine con las credenciales e iniciarlo
         InstancesSettings instancesSettings = InstancesSettings.newBuilder()
@@ -48,27 +45,27 @@ public class GCP
 
         for (Map.Entry<String, InstancesScopedList> zoneInstances : response.iterateAll()) {
             String zone = zoneInstances.getKey();
-            if (!zoneInstances.getValue().getInstancesList().isEmpty()) 
-            {
+            if (!zoneInstances.getValue().getInstancesList().isEmpty()) {
                 System.out.printf("Instances at %s: ", zone.substring(zone.lastIndexOf('/') + 1));
                 for (Instance instance : zoneInstances.getValue().getInstancesList()) {
                     System.out.println(instance.getName());
-                    String[] ip_list = new String[2];
+                    String[] ipList = new String[2];
 
                     for (NetworkInterface networkInterface : instance.getNetworkInterfacesList()) {
                         System.out.println("Internal IP: " + networkInterface.getNetworkIP());
-                        ip_list[0] = networkInterface.getNetworkIP();
+                        ipList[0] = networkInterface.getNetworkIP();
                         if (!networkInterface.getAccessConfigsList().isEmpty()) {
-                            System.out.println("External IP: " + networkInterface.getAccessConfigsList().get(0).getNatIP());
-                            ip_list[1] = networkInterface.getAccessConfigsList().get(0).getNatIP();
+                            System.out.println(
+                                    "External IP: " + networkInterface.getAccessConfigsList().get(0).getNatIP());
+                            ipList[1] = networkInterface.getAccessConfigsList().get(0).getNatIP();
                         }
                     }
-                    IP_map.put(zone, ip_list);
-                    IP_map.put(instance.getName(), ip_list);
+                    ipMap.put(zone, ipList);
+                    ipMap.put(instance.getName(), ipList);
                 }
             }
         }
-        return IP_map;
+        return ipMap;
     }
 
 }

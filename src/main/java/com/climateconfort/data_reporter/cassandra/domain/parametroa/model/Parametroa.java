@@ -14,11 +14,10 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @CqlName("Parametroa")
-public class Parametroa 
-{
+public class Parametroa {
     int id;
     String mota;
-    float balio_min;
-    float balio_max;
-    int gela_id;
+    float balioMin;
+    float balioMax;
+    int gelaId;
 }

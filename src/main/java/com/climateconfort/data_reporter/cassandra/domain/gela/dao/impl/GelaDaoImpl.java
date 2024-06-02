@@ -9,24 +9,20 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
-public class GelaDaoImpl implements GelaDao 
-{
-  private Session session;
+public class GelaDaoImpl implements GelaDao {
+    private Session session;
 
-    public GelaDaoImpl(Session session)
-    {
+    public GelaDaoImpl(Session session) {
         this.session = session;
     }
 
     @Override
-    public List<Gela> findByEraikinaId(int eraikina_id) 
-    {
+    public List<Gela> findByEraikinaId(int eraikinaId) {
         String query = "SELECT * FROM Gela WHERE eraikina_id = ? ALLOW FILTERING";
-        ResultSet result = session.execute(query, eraikina_id);
+        ResultSet result = session.execute(query, eraikinaId);
         List<Gela> gelaList = new ArrayList<>();
 
-        for (Row row : result.all())
-        {
+        for (Row row : result.all()) {
             Gela gela = new Gela();
             gela.setId(row.getInt("id"));
 
