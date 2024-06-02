@@ -40,13 +40,6 @@ class KafkaPublisherTest {
 
     }
 
-    private Properties getProperties() {
-        Properties properties = new Properties();
-        properties.setProperty("kafka_broker_ip", "localhost");
-        properties.setProperty("kafka_broker_port", "9092");
-        return properties;
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     void sendDataTest() {
@@ -54,6 +47,13 @@ class KafkaPublisherTest {
         String payload = "test-payload";
         kafkaPublisher.sendData(topic, payload);
         verify(kafkaProducer).send(any(ProducerRecord.class));
+    }
+
+    private Properties getProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("kafka_broker_ip", "localhost");
+        properties.setProperty("kafka_broker_port", "9092");
+        return properties;
     }
 
     private <T, E> void setField(T target, String fieldName, E newValue)
