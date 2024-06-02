@@ -1,23 +1,27 @@
-package com.climateconfort.data_reporter.cassandra.domain.parametroa.model;
+package com.climateconfort.data_reporter.cassandra.domain.parametroa;
 
 import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
+import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@CqlName("Parametroa")
 public class Parametroa {
+    @PartitionKey
     int id;
+
     String mota;
+    
+    @CqlName("balio_min")
     float balioMin;
+    
+    @CqlName("balio_max")
     float balioMax;
+    
+    @CqlName("gela_id")
     int gelaId;
 }
