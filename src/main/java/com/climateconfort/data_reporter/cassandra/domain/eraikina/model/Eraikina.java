@@ -14,9 +14,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @CqlName("Eraikina")
-public class Eraikina
-{
+public class Eraikina {
     int id;
     String lokalizazioa;
-    int enpresa_id;
+    int enpresaId;
 }
