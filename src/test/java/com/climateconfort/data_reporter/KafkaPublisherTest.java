@@ -45,7 +45,7 @@ class KafkaPublisherTest {
     @Test
     void sendDataTest() {
         String topic = "test-topic";
-        String payload = "test-payload";
+        byte[] payload = "test-payload".getBytes();
         kafkaPublisher.sendData(topic, payload);
         verify(kafkaProducer).send(any(ProducerRecord.class));
     }
