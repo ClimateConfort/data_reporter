@@ -21,10 +21,15 @@ import org.mockito.MockitoAnnotations;
 
 import com.climateconfort.data_reporter.cassandra.GCP;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.compute.v1.*;
+import com.google.cloud.compute.v1.AccessConfig;
+import com.google.cloud.compute.v1.AggregatedListInstancesRequest;
+import com.google.cloud.compute.v1.Instance;
+import com.google.cloud.compute.v1.InstancesClient;
+import com.google.cloud.compute.v1.InstancesScopedList;
+import com.google.cloud.compute.v1.InstancesSettings;
+import com.google.cloud.compute.v1.NetworkInterface;
 
-class GCPTest 
-{
+class GCPTest {
     @Mock
     private GoogleCredentials mockCredentials;
 
@@ -44,19 +49,19 @@ class GCPTest
     private AccessConfig mockAccessConfig;
 
     @Mock
-    private InstancesScopedList mockInstancesScopedList;    
+    private InstancesScopedList mockInstancesScopedList;
 
     private GCP gcp;
 
     @BeforeEach
-    void setUp() throws IOException 
-    {
+    void setUp() throws IOException {
         MockitoAnnotations.openMocks(this);
         gcp = new GCP();
 
         MockedStatic<InstancesClient> mockedInstancesClient = mockStatic(InstancesClient.class);
 
-        mockedInstancesClient.when(() ->  InstancesClient.create(any(InstancesSettings.class))).thenReturn(mockInstancesClient);
+        mockedInstancesClient.when(() -> InstancesClient.create(any(InstancesSettings.class)))
+                .thenReturn(mockInstancesClient);
         when(mockInstancesClient.aggregatedList(any(AggregatedListInstancesRequest.class))).thenReturn(mockResponse);
 
         when(mockInstance.getName()).thenReturn("test-instance");
@@ -67,19 +72,19 @@ class GCPTest
 
         when(mockInstancesScopedList.getInstancesList()).thenReturn(List.of(mockInstance));
         Iterable<Map.Entry<String, InstancesScopedList>> mockZoneInstances;
-        Map.Entry<String, InstancesScopedList> entry = new AbstractMap.SimpleEntry<>("zones/us-central1-a", mockInstancesScopedList);
+        Map.Entry<String, InstancesScopedList> entry = new AbstractMap.SimpleEntry<>("zones/us-central1-a",
+                mockInstancesScopedList);
         mockZoneInstances = Collections.singletonList(entry);
         when(mockResponse.iterateAll()).thenReturn(mockZoneInstances);
     }
-    
+
     @Test
-    public void testListInstances() throws IOException 
-    {
+    void testListInstances() throws IOException {
         Map<String, String[]> result = gcp.listInstances();
 
         assertNotNull(result);
         assertTrue(result.containsKey("test-instance"));
-        assertArrayEquals(new String[]{"10.0.0.1", "35.0.0.1"}, result.get("test-instance"));
+        assertArrayEquals(new String[] { "10.0.0.1", "35.0.0.1" }, result.get("test-instance"));
     }
 
 }

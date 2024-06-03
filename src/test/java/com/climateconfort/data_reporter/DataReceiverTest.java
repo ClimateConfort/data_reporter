@@ -181,7 +181,7 @@ public class DataReceiverTest {
 
     private Properties getProperties() {
         Properties properties = new Properties();
-        properties.setProperty("client_id", String.valueOf(clientId));
+        properties.setProperty("climateconfort.client_id", String.valueOf(clientId));
         return properties;
     }
 
