@@ -3,6 +3,7 @@ package com.climateconfort.data_reporter.data_collection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -30,14 +31,17 @@ public class DataReceiver {
     private boolean isStop;
 
     // PublisherID: String = String(buildingId) + "-" + String(roomId);
-    public DataReceiver(Properties properties, List<String> publisherIdList) throws NumberFormatException {
+    public DataReceiver(Properties properties) throws NumberFormatException {
         this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         this.connectionFactory = new ConnectionFactory();
         this.connectionFactory.setHost(properties.getProperty("rabbitmq.server.ip", "localhost"));
         this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq.server.port", "5672")));
         this.connectionFactory.setUsername(properties.getProperty("rabbitmq.server.user", "guest"));
         this.connectionFactory.setPassword(properties.getProperty("rabbitmq.server.password", "guest"));
-        this.publisherIdList = publisherIdList;
+        this.publisherIdList = Arrays
+                .asList(properties
+                        .getProperty("climateconfort.publishers")
+                        .split(","));
         this.dataQueue = new ConcurrentLinkedQueue<>();
         this.isStop = false;
     }
