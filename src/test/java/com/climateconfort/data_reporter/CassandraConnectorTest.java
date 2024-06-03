@@ -114,7 +114,7 @@ class CassandraConnectorTest {
 
     private Properties getProperties() {
         Properties properties = new Properties();
-        properties.setProperty("climate_confort.client_id", "1");
+        properties.setProperty("climateconfort.client_id", "1");
         properties.setProperty("cassandra.username", "cassandra");
         properties.setProperty("cassandra.password", "cassandra");
         properties.setProperty("cassandra.datacenter", "datacenter1");

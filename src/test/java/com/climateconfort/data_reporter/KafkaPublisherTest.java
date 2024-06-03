@@ -1,6 +1,7 @@
 package com.climateconfort.data_reporter;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 
@@ -34,7 +35,7 @@ class KafkaPublisherTest {
 
         try (@SuppressWarnings("rawtypes")
         MockedConstruction<KafkaProducer> mockedConstruction = mockConstruction(KafkaProducer.class)) {
-            kafkaPublisher = new KafkaPublisher(getProperties());
+            kafkaPublisher = new KafkaPublisher(mock(Properties.class));
             setField(kafkaPublisher, "kafkaProducer", kafkaProducer);
         }
 
@@ -47,13 +48,6 @@ class KafkaPublisherTest {
         String payload = "test-payload";
         kafkaPublisher.sendData(topic, payload);
         verify(kafkaProducer).send(any(ProducerRecord.class));
-    }
-
-    private Properties getProperties() {
-        Properties properties = new Properties();
-        properties.setProperty("kafka_broker_ip", "localhost");
-        properties.setProperty("kafka_broker_port", "9092");
-        return properties;
     }
 
     private <T, E> void setField(T target, String fieldName, E newValue)
