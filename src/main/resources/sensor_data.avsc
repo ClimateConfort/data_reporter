@@ -1,0 +1,48 @@
+{
+    "type": "record",
+    "name": "SensorDataAvro",
+    "namespace": "com.climateconfort.data_reporter.avro",
+    "doc": "",
+    "fields": [
+        {
+            "name": "unixTime",
+            "type": "long",
+            "doc": "Unix Timestamp"
+        },
+        {
+            "name": "roomId",
+            "type": "long",
+            "doc": "Room identification"
+        },
+        {
+            "name": "buildingId",
+            "type": "long",
+            "doc": "Building identification"
+        },
+        {
+            "name": "clientId",
+            "type": "long",
+            "doc": "Client identification"
+        },
+        {
+            "name": "temperature",
+            "type": "float",
+            "doc": "Room temperature in ºC"
+        },
+        {
+            "name": "soundLevel",
+            "type": "float",
+            "doc": "Room sound level in decibels"
+        },
+        {
+            "name": "humidity",
+            "type": "float",
+            "doc": "Room humidity in %"
+        },
+        {
+            "name": "pressure",
+            "type": "float",
+            "doc": "Room pressure in hPa"
+        }
+    ]
+}
