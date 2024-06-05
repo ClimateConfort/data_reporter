@@ -12,10 +12,10 @@ import lombok.Setter;
 @Entity
 public class Eraikina {
     @PartitionKey
-    int id;
+    long id;
     
     String lokalizazioa;
 
     @CqlName("enpresa_id")
-    int enpresaId;
+    long enpresaId;
 }

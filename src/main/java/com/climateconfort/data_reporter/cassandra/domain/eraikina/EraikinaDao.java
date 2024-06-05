@@ -7,5 +7,5 @@ import com.datastax.oss.driver.api.mapper.annotations.Select;
 @Dao
 public interface EraikinaDao {
     @Select(customWhereClause = "enpresa_id = :enpresaId", allowFiltering = true)
-    PagingIterable<Eraikina> findAllByEnpresaId(int enpresaId);
+    PagingIterable<Eraikina> findAllByEnpresaId(long enpresaId);
 }
