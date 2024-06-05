@@ -24,7 +24,7 @@ import com.climateconfort.data_reporter.kafka.KafkaPublisher;
 class KafkaPublisherTest {
 
     @Mock
-    Producer<String, String> kafkaProducer;
+    Producer<String, byte[]> kafkaProducer;
 
     KafkaPublisher kafkaPublisher;
 
@@ -35,10 +35,17 @@ class KafkaPublisherTest {
 
         try (@SuppressWarnings("rawtypes")
         MockedConstruction<KafkaProducer> mockedConstruction = mockConstruction(KafkaProducer.class)) {
-            kafkaPublisher = new KafkaPublisher(mock(Properties.class));
+            kafkaPublisher = new KafkaPublisher(getProperties());
             setField(kafkaPublisher, "kafkaProducer", kafkaProducer);
         }
 
+    }
+
+    private Properties getProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("climateconfort.client_id", "1");
+        properties.setProperty("climateconfort.publishers", "1-1,1-2");
+        return properties;
     }
 
     @SuppressWarnings("unchecked")
