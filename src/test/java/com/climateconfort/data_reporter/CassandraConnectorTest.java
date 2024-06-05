@@ -142,13 +142,13 @@ class CassandraConnectorTest {
         when(pagingIterableParametroa.iterator()).thenReturn(Collections.singletonList(parametroa).iterator());
 
         // Call the method to test
-        Map<Integer, Map<Integer, List<Parametroa>>> parameters = cassandraConnector.getParameters();
+        Map<Long, Map<Long, List<Parametroa>>> parameters = cassandraConnector.getParameters();
 
         // Verify the result
         assertEquals(1, parameters.size());
-        assertEquals(1, parameters.get(1).size());
-        assertEquals(1, parameters.get(1).get(1).size());
-        assertEquals(parametroa, parameters.get(1).get(1).get(0));
+        assertEquals(1, parameters.get(1L).size());
+        assertEquals(1, parameters.get(1L).get(1L).size());
+        assertEquals(parametroa, parameters.get(1L).get(1L).get(0));
 
         // Verify interactions
         verify(eraikinaDao).findAllByEnpresaId(1);

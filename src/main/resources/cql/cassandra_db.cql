@@ -1,43 +1,42 @@
-
 CREATE KEYSPACE climate_confort WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 
 USE climate_confort;
 
 CREATE TABLE Role (
-    id              int PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     type            INT
 );
 
 CREATE TABLE User (
-    id              int PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     email           TEXT,
     pasahitza       TEXT,
-    role_id         int
+    role_id         BIGINT
 );
 
 CREATE TABLE Enpresa (
-    id              int PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     izena           TEXT,
-    user_id         int,
+    user_id         BIGINT,
 );
 
 CREATE TABLE Eraikina (
-    id              int PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     lokalizazioa    TEXT,
-    enpresa_id      int
+    enpresa_id      BIGINT
 );
 
 CREATE TABLE Gela (
-    id              int PRIMARY KEY,
-    eraikina_id     int
+    id              BIGINT PRIMARY KEY,
+    eraikina_id     BIGINT
 );
 
 CREATE TABLE Parametroa (
-    id              int PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     mota            TEXT,
     balio_min       FLOAT,
     balio_max       FLOAT,
-    gela_id         int
+    gela_id         BIGINT
 );
 
 -- Insert Role

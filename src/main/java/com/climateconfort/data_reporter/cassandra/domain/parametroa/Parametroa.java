@@ -12,7 +12,7 @@ import lombok.Setter;
 @Entity
 public class Parametroa {
     @PartitionKey
-    int id;
+    long id;
 
     String mota;
     
@@ -23,5 +23,5 @@ public class Parametroa {
     float balioMax;
     
     @CqlName("gela_id")
-    int gelaId;
+    long gelaId;
 }
