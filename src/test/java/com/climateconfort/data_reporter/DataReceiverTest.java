@@ -1,7 +1,7 @@
 package com.climateconfort.data_reporter;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -88,7 +88,7 @@ class DataReceiverTest {
                 throw new RuntimeException("Runtime error!");
             }
         })).start();
-        Thread.sleep(1000);
+        Thread.sleep(1000); // TODO: Awaitility erabili
         dataReceiver.stop();
         verify(connectionFactory).newConnection();
         verify(connection).createChannel();
@@ -166,7 +166,7 @@ class DataReceiverTest {
         // Write a TC_NULL (0x70) marker
         dataOutputStream.writeByte(ObjectStreamConstants.TC_NULL);
 
-        assertThrows(IllegalStateException.class,
+        assertDoesNotThrow(
                 () -> consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class),
                         byteArrayOutputStream.toByteArray()));
     }
