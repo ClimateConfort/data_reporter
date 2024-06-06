@@ -63,14 +63,14 @@ public class CassandraConnector implements AutoCloseable {
         Map<Long, Map<Long, List<Parametroa>>> eraikinMap = new HashMap<>();
         for (Eraikina eraikina : eraikinaDao.findAllByEnpresaId(clientId)) {
             Map<Long, List<Parametroa>> gelaMap = new HashMap<>();
-            for (Gela gela : gelaDao.findAllByEraikinaId(eraikina.getId())) {
+            for (Gela gela : gelaDao.findAllByEraikinaId(eraikina.getEraikinaId())) {
                 List<Parametroa> parametroaList = new ArrayList<>();
-                for (Parametroa parametroa : parametroaDao.findAllByGelaId(gela.getId())) {
+                for (Parametroa parametroa : parametroaDao.findAllByGelaId(gela.getGelaId())) {
                     parametroaList.add(parametroa);
                 }
-                gelaMap.put(gela.getId(), parametroaList);
+                gelaMap.put(gela.getGelaId(), parametroaList);
             }
-            eraikinMap.put(eraikina.getId(), gelaMap);
+            eraikinMap.put(eraikina.getEraikinaId(), gelaMap);
         }
         return eraikinMap;
     }

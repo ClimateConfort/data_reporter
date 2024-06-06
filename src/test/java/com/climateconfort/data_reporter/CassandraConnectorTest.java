@@ -164,7 +164,7 @@ class CassandraConnectorTest {
 
     private Parametroa generateParametroa(int id, String mota, float balioMax, float balioMin, int gelaId) {
         Parametroa parametroa = new Parametroa();
-        parametroa.setId(id);
+        parametroa.setParametroaId(id);
         parametroa.setMota(mota);
         parametroa.setBalioMax(balioMax);
         parametroa.setBalioMin(balioMin);
@@ -174,14 +174,14 @@ class CassandraConnectorTest {
 
     private Gela generateGela(int id, int eraikinaId) {
         Gela gela = new Gela();
-        gela.setId(id);
+        gela.setGelaId(id);
         gela.setEraikinaId(eraikinaId);
         return gela;
     }
 
     private Eraikina generateEraikina(int id, String lokalizazioa, int enpresaId) {
         Eraikina eraikina = new Eraikina();
-        eraikina.setId(id);
+        eraikina.setEraikinaId(id);
         eraikina.setLokalizazioa(lokalizazioa);
         eraikina.setEnpresaId(enpresaId);
         return eraikina;
