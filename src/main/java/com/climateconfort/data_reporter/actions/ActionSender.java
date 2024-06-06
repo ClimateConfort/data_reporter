@@ -25,7 +25,7 @@ public class ActionSender {
         try (Connection connection = connectionFactory.newConnection();
                 Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, "topic");
-            channel.basicPublish(Constants.SENSOR_ACTION_EXCHANGE, String.format(buildingId + "." + roomId), null,
+            channel.basicPublish(Constants.SENSOR_ACTION_EXCHANGE, String.format("%d.%d", buildingId, roomId), null,
                     action.getBytes());
         }
     }
