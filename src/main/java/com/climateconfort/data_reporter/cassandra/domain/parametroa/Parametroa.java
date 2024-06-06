@@ -11,17 +11,23 @@ import lombok.Setter;
 @Setter
 @Entity
 public class Parametroa {
-    @PartitionKey
-    long id;
+    @PartitionKey(1)
+    long enpresaId;
+
+    @PartitionKey(2)
+    long eraikinaId;
+
+    @PartitionKey(3)
+    long gelaId;
+
+    @PartitionKey(4)
+    long parametroaId;
 
     String mota;
-    
-    @CqlName("balio_min")
+
+    boolean minimoaDu;
+
     float balioMin;
     
-    @CqlName("balio_max")
     float balioMax;
-    
-    @CqlName("gela_id")
-    long gelaId;
 }

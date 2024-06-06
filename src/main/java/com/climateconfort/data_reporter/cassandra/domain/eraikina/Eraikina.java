@@ -11,11 +11,11 @@ import lombok.Setter;
 @Setter
 @Entity
 public class Eraikina {
-    @PartitionKey
-    long id;
+    @PartitionKey(1)
+    long enpresaId;
+
+    @PartitionKey(2)
+    long eraikinaId;
     
     String lokalizazioa;
-
-    @CqlName("enpresa_id")
-    long enpresaId;
 }

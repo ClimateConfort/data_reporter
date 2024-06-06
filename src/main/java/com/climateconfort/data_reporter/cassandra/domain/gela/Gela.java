@@ -11,9 +11,12 @@ import lombok.Setter;
 @Setter
 @Entity
 public class Gela {
-    @PartitionKey
-    long id;
+    @PartitionKey(1)
+    long enpresaId;
 
-    @CqlName("eraikina_id")
+    @PartitionKey(2)
     long eraikinaId;
+
+    @PartitionKey(3)
+    long gelaId;
 }
