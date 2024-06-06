@@ -134,7 +134,7 @@ class CassandraConnectorTest {
         // Mocking the behavior of DAO methods
         when(eraikinaDao.findAllByEnpresaId(1)).thenReturn(pagingIterableEraikina);
         when(gelaDao.findAllByEraikinaId(1)).thenReturn(pagingIterableGela);
-        when(parametroaDao.findAllByGelaId(1)).thenReturn(pagingIterableParametroa);
+        when(parametroaDao.findAllByClientIdBuildingIdRoomId(1, 1, 1)).thenReturn(pagingIterableParametroa);
 
         // Mocking PagingIterables
         when(pagingIterableEraikina.iterator()).thenReturn(Collections.singletonList(eraikina).iterator());
@@ -153,7 +153,7 @@ class CassandraConnectorTest {
         // Verify interactions
         verify(eraikinaDao).findAllByEnpresaId(1);
         verify(gelaDao).findAllByEraikinaId(1);
-        verify(parametroaDao).findAllByGelaId(1);
+        verify(parametroaDao).findAllByClientIdBuildingIdRoomId(1, 1, 1);
     }
 
     @Test

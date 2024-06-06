@@ -61,7 +61,6 @@ public class Main {
 
     private final ReadWriteLock readWriteLock;
     private boolean isStop;
-
     private Map<Long, Map<Long, List<Parametroa>>> valueMap;
 
     public Main(Path propertiesPath) throws IOException {
@@ -119,13 +118,15 @@ public class Main {
                         sensorDataMap
                                 .get(buildingId)
                                 .computeIfPresent(roomId,
-                                        (key, dataList) -> concurrentProgramLogic(sensorData, dataList));
+                                        // (key, dataList) -> concurrentProgramLogic(sensorData, dataList));
+                                        (key, dataList) -> sequentialProgramLogic(sensorData, dataList));
                     });
 
             totalMilisecs += System.currentTimeMillis() - start;
             if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
                 totalMilisecs = 0;
-                concurrentUpdateValues();
+                // concurrentUpdateValues();
+                sequentialUpdateValues();
             }
         }
     }
@@ -148,13 +149,8 @@ public class Main {
             executorService.execute(() -> {
                 List<SensorData> copySensorDataList = new ArrayList<>(dataList);
                 countDownLatch.countDown(); // dataList-aren kopia egin dela abixatu
-                try (ByteArrayOutputStream avroFileStream = AvroSerializer.packToAvroFile(copySensorDataList)) {
-                    String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
-                            sensorData.getRoomId());
-                    RecordMetadata metadata = kafkaPublisher.sendData(queue, avroFileStream.toByteArray()).get();
-                    LOGGER.info("Data from Client {}, Building {}, Room: {} has been published. File size: {} bytes",
-                            sensorData.getClientId(), sensorData.getBuildingId(), sensorData.getRoomId(),
-                            avroFileStream.size());
+                try {
+                    packAndPublish(sensorData, copySensorDataList);
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     LOGGER.error("Kafka Sender Thread Interrupted", e);
                     Thread.currentThread().interrupt();
@@ -176,6 +172,21 @@ public class Main {
                 LOGGER.error("Action Taking Thread Interrupted", e);
                 Thread.currentThread().interrupt();
             }
+            dataList.clear();
+        }
+        dataList.add(sensorData);
+        return dataList;
+    }
+
+    private List<SensorData> sequentialProgramLogic(SensorData sensorData, List<SensorData> dataList) {
+        if (dataList.size() >= MAX_DATA_PER_PACKAGE) {
+            try {
+                packAndPublish(sensorData, dataList);
+            } catch (IOException | InterruptedException | ExecutionException e) {
+                LOGGER.error("Kafka sender interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+            sequentialTakeAction(sensorData.getBuildingId(), sensorData.getRoomId(), dataList);
             dataList.clear();
         }
         dataList.add(sensorData);
@@ -204,25 +215,65 @@ public class Main {
             });
         }
 
-        List<Future<List<Integer>>> results = executorService.invokeAll(tasks);
+        List<Future<List<Integer>>> futures = executorService.invokeAll(tasks);
 
         // Sum up the results from all tasks
-        int temperatureSum = 0;
-        int soundLevelSum = 0;
-        int humiditySum = 0;
-        int pressureSum = 0;
-        for (Future<List<Integer>> result : results) {
-            temperatureSum += result.get().get(0);
-            soundLevelSum += result.get().get(1);
-            humiditySum += result.get().get(2);
-            pressureSum += result.get().get(3);
+        int temperatureMean = 0;
+        int soundLevelMean = 0;
+        int humidityMean = 0;
+        int pressureMean = 0;
+        for (Future<List<Integer>> future : futures) {
+            List<Integer> results = future.get();
+            temperatureMean += results.get(0);
+            soundLevelMean += results.get(1);
+            humidityMean += results.get(2);
+            pressureMean += results.get(3);
         }
 
-        final int temperatureMean = temperatureSum / dataList.size();
-        final int soundLevelMean = soundLevelSum / dataList.size();
-        final int humidityMean = humiditySum / dataList.size();
-        final int pressureMean = pressureSum / dataList.size();
+        temperatureMean /= dataList.size();
+        soundLevelMean /= dataList.size();
+        humidityMean /= dataList.size();
+        pressureMean /= dataList.size();
 
+        performAction(buildingId, roomId, temperatureMean, soundLevelMean, humidityMean, pressureMean);
+    }
+
+    private void packAndPublish(SensorData sensorData, List<SensorData> copySensorDataList)
+            throws IOException, InterruptedException, ExecutionException {
+        try (ByteArrayOutputStream avroFileStream = AvroSerializer.packToAvroFile(copySensorDataList)) {
+            String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
+                    sensorData.getRoomId());
+            RecordMetadata metadata = kafkaPublisher.sendData(queue, avroFileStream.toByteArray()).get();
+            LOGGER.info("Data from Client {}, Building {}, Room: {} has been published. File size: {} bytes",
+                    sensorData.getClientId(), sensorData.getBuildingId(), sensorData.getRoomId(),
+                    avroFileStream.size());
+            LOGGER.debug("Data sent to Partition: '{}', Offset: {}", metadata.partition(), metadata.offset());
+        }
+    }
+
+    private void sequentialTakeAction(long buildingId, long roomId, List<SensorData> dataList) {
+        int temperatureMean = 0;
+        int soundLevelMean = 0;
+        int humidityMean = 0;
+        int pressureMean = 0;
+
+        for (SensorData sensorData : dataList) {
+            temperatureMean += sensorData.getTemperature();
+            soundLevelMean += sensorData.getSoundLevel();
+            humidityMean += sensorData.getHumidity();
+            pressureMean += sensorData.getPressure();
+        }
+
+        temperatureMean /= dataList.size();
+        soundLevelMean /= dataList.size();
+        humidityMean /= dataList.size();
+        pressureMean /= dataList.size();
+
+        performAction(buildingId, roomId, temperatureMean, soundLevelMean, humidityMean, pressureMean);
+    }
+
+    private void performAction(long buildingId, long roomId, int temperatureMean, int soundLevelMean, int humidityMean,
+            int pressureMean) {
         getValueMap()
                 .get(buildingId)
                 .get(roomId)
@@ -247,7 +298,8 @@ public class Main {
                     }
                     try {
                         if (!action.isEmpty()) {
-                            actionSender.publish(roomId, buildingId, "action");
+                            actionSender.publish(roomId, buildingId, action);
+                            LOGGER.info("Action '{}' published to Building: {}, Room: {}", action, buildingId, roomId);
                         }
                     } catch (IOException | TimeoutException e) {
                         LOGGER.error("Action publishing error", e);
