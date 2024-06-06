@@ -24,6 +24,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,11 +52,47 @@ public class Main {
     private static final String PROGRAM_NAME = "data_reporter";
     private static final String PROGRAM_VERSION = "1.0.0";
 
-    public static void main(String[] args) throws Exception {
-        Scanner scanner = new Scanner(System.in);
-        Main main = new Main(Paths.get("config/application.properties"));
-        main.setup(scanner);
-        main.start();
+    private static Options generateArgumentOptions() {
+        Options options = new Options();
+        options.addOption("h", "help", false, "Show help");
+        options.addOption("v", "version", false, "Show version");
+        options.addOption("p", "properties", true, "Properties file path");
+        return options;
+    }
+
+    private static CommandLine parseArguments(String[] args) throws ParseException {
+        Options argOptions = generateArgumentOptions();
+        CommandLineParser parser = new DefaultParser();
+        return parser.parse(argOptions, args);
+    }
+
+    public static void main(String[] args) {
+        try {
+            CommandLine cmd = parseArguments(args);
+            if (cmd.hasOption("h")) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp(PROGRAM_NAME, generateArgumentOptions());
+                return;
+            }
+    
+            if (cmd.hasOption("v")) {
+                LOGGER.info("Version: {}", PROGRAM_VERSION);
+                return;
+            }
+    
+            if (!cmd.hasOption("p")) {
+                LOGGER.error("No valid options provided. Use -h for help.");
+                return;
+            }
+    
+            Main main = new Main(Paths.get(cmd.getOptionValue("p")));
+            main.setup(new Scanner(System.in));
+            main.start();
+        } catch (ParseException e) {
+            LOGGER.error("Error parsing command line arguments", e);
+        } catch (Exception e) {
+            LOGGER.error("Unknown error", e);
+        }
     }
 
     private final ActionSender actionSender;
@@ -91,6 +133,7 @@ public class Main {
         Thread waitThread = new Thread(() -> {
             scanner.nextLine();
             cassandraConnector.close();
+            kafkaPublisher.close();
             dataReceiver.stop();
             isStop = true;
         });
