@@ -1,7 +1,6 @@
 package com.climateconfort.data_reporter;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 
@@ -45,6 +44,7 @@ class KafkaPublisherTest {
         Properties properties = new Properties();
         properties.setProperty("climateconfort.client_id", "1");
         properties.setProperty("climateconfort.publishers", "1-1,1-2");
+        properties.setProperty("kafka.request.timeout.ms", "1000");
         return properties;
     }
 
@@ -55,6 +55,12 @@ class KafkaPublisherTest {
         byte[] payload = "test-payload".getBytes();
         kafkaPublisher.sendData(topic, payload);
         verify(kafkaProducer).send(any(ProducerRecord.class));
+    }
+
+    @Test
+    void closeTest() {
+        kafkaProducer.close();
+        verify(kafkaProducer).close();
     }
 
     private <T, E> void setField(T target, String fieldName, E newValue)

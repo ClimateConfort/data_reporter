@@ -3,15 +3,17 @@ package com.climateconfort.data_reporter.kafka;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Future;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-public class KafkaPublisher {
+public class KafkaPublisher implements AutoCloseable {
     private final int clientId;
     private final List<String> publisherIdList;
     private final Producer<String, byte[]> kafkaProducer;
@@ -31,6 +33,7 @@ public class KafkaPublisher {
         kafkaProperties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaIp + ":" + kafkaPort);
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        kafkaProperties.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, Integer.parseInt(properties.getProperty("kafka.request.timeout.ms", "NaN")));
 
         kafkaProducer = new KafkaProducer<>(kafkaProperties);
     }
@@ -39,8 +42,12 @@ public class KafkaPublisher {
         throw new UnsupportedOperationException("'KafkaPublisher::createTopics' not implemented!");
     }
 
-    public void sendData(String topic, byte[] payload) {
-        kafkaProducer.send(new ProducerRecord<>(topic, kafkaKey, payload));
+    public Future<RecordMetadata> sendData(String topic, byte[] payload) {
+        return kafkaProducer.send(new ProducerRecord<>(topic, kafkaKey, payload));
     }
 
+    @Override
+    public void close() throws Exception {
+        kafkaProducer.close();
+    }
 }
