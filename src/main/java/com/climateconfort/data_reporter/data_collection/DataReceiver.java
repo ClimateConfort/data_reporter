@@ -11,6 +11,9 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.climateconfort.common.Constants;
 import com.climateconfort.common.SensorData;
 
@@ -80,6 +83,8 @@ public class DataReceiver {
 
     public class SensorDataConsumer extends DefaultConsumer {
 
+        private static final Logger LOGGER = LogManager.getLogger(SensorDataConsumer.class);
+
         public SensorDataConsumer(Channel channel) {
             super(channel);
         }
@@ -92,7 +97,7 @@ public class DataReceiver {
                 SensorData sensorData = (SensorData) inputObject.readObject();
                 dataQueue.add(sensorData);
             } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
+                LOGGER.error("Sensor Data Delivery Error", e);
             }
         }
     }
