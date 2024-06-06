@@ -1,65 +1,285 @@
 package com.climateconfort.data_reporter;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
+import java.util.Scanner;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.climateconfort.common.SensorData;
 import com.climateconfort.data_reporter.actions.ActionSender;
 import com.climateconfort.data_reporter.avro.AvroSerializer;
 import com.climateconfort.data_reporter.cassandra.CassandraConnector;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.ParametroMota;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
+import com.climateconfort.data_reporter.kafka.KafkaPublisher;
 
 public class Main {
+
+    private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors(); // TODO: Ikusi thread kopurua
+    private static final int MAX_DATA_PER_PACKAGE = 600;
+    private static final Logger LOGGER = LogManager.getLogger(Main.class);
+    private static final int UPDATE_TIME_MIN = 1;
+    private static final String PROGRAM_NAME = "data_reporter";
+    private static final String PROGRAM_VERSION = "1.0.0";
+
     public static void main(String[] args) throws Exception {
-        // List<SensorData> sensorDatas = new ArrayList<>();
+        Scanner scanner = new Scanner(System.in);
+        Main main = new Main(Paths.get("config/application.properties"));
+        main.setup(scanner);
+        main.start();
+    }
 
-        // Random random = new Random();
+    private final ActionSender actionSender;
+    private final CassandraConnector cassandraConnector;
+    private final DataReceiver dataReceiver;
+    private final ExecutorService executorService;
+    private final KafkaPublisher kafkaPublisher;
 
-        // for (int i = 0; i < 10000; i++) {
-        //     sensorDatas.add(new SensorData(random.nextLong(), 1, random.nextLong(), random.nextLong(),
-        //             random.nextFloat(), random.nextFloat(), random.nextFloat(), random.nextFloat(), random.nextFloat(),
-        //             random.nextFloat()));
-        // }
+    private final ReadWriteLock readWriteLock;
+    private boolean isStop;
 
-        // var stream = AvroSerializer.packToAvroFile(sensorDatas);
-        // FileOutputStream fileOutputStream = new FileOutputStream("data.avro");
-        // fileOutputStream.write(stream.toByteArray());
-        // fileOutputStream.close();
-      
-        // Properties properties = new Properties();
-        // properties.load(new FileInputStream("src/main/resources/application.properties"));
-        // List<String> publisherIdList = new ArrayList<>();
-        // publisherIdList.add("1-1");
-        // DataReceiver dataReceiver = new DataReceiver(properties, publisherIdList);
+    private Map<Long, Map<Long, List<Parametroa>>> valueMap;
 
-        // (new Thread(() -> {
-        //     try {
-        //         dataReceiver.subscribe();
-        //     } catch (IOException | TimeoutException | InterruptedException e) {
-        //         e.printStackTrace();
-        //     }
-        // })).start();
-
-        // String[] actions = {"Action1", "Action2", "Action3"};
-        // ActionSender sender = new ActionSender(properties);
-
-        // while (true) {
-        //     int index = random.nextInt(actions.length);
-        //     sender.publish(1, 1, actions[index]);
-        //     dataReceiver.getSensorData().ifPresent(System.out::println);
-        // }
-
+    public Main(Path propertiesPath) throws IOException {
         Properties properties = new Properties();
-        try (FileInputStream fileInputStream = new FileInputStream("config/application.properties")) {
-            properties.load(fileInputStream);
+        try (BufferedReader bufferedReader = Files.newBufferedReader(propertiesPath)) {
+            properties.load(bufferedReader);
         }
-        try (CassandraConnector cassandraConnector = new CassandraConnector(properties)) {
-            var map = cassandraConnector.getParameters();
-            System.out.println("asdf");
+        this.actionSender = new ActionSender(properties);
+        this.cassandraConnector = new CassandraConnector(properties);
+        this.dataReceiver = new DataReceiver(properties);
+        this.executorService = Executors.newWorkStealingPool(CORE_COUNT);
+        this.kafkaPublisher = new KafkaPublisher(properties);
+        this.readWriteLock = new ReentrantReadWriteLock(true);
+        this.isStop = false;
+    }
+
+    public void setup(Scanner scanner) {
+        LOGGER.info("Setting Up...");
+        Thread subscriberThread = new Thread(() -> {
+            try {
+                dataReceiver.subscribe();
+            } catch (IOException | TimeoutException | InterruptedException e) {
+                LOGGER.error("Subscriber Thread Interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+        });
+
+        Thread waitThread = new Thread(() -> {
+            scanner.nextLine();
+            cassandraConnector.close();
+            dataReceiver.stop();
+            isStop = true;
+        });
+
+        // kafkaPublisher.createTopics();
+        subscriberThread.start();
+        waitThread.start();
+        LOGGER.info("Setting Up... - done");
+    }
+
+    public void start() {
+        long totalMilisecs = 0;
+        Map<Long, Map<Long, List<SensorData>>> sensorDataMap = new HashMap<>();
+        sequentialUpdateValues();
+        while (!isStop) {
+            long start = System.currentTimeMillis();
+            dataReceiver
+                    .getSensorData()
+                    .ifPresent(sensorData -> {
+                        long buildingId = sensorData.getBuildingId();
+                        long roomId = sensorData.getRoomId();
+                        sensorDataMap
+                                .computeIfAbsent(buildingId, k -> new HashMap<>())
+                                .computeIfAbsent(roomId, k -> new ArrayList<>());
+                        sensorDataMap
+                                .get(buildingId)
+                                .computeIfPresent(roomId,
+                                        (key, dataList) -> concurrentProgramLogic(sensorData, dataList));
+                    });
+
+            totalMilisecs += System.currentTimeMillis() - start;
+            if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
+                totalMilisecs = 0;
+                concurrentUpdateValues();
+            }
         }
+    }
+
+    private Map<Long, Map<Long, List<Parametroa>>> getValueMap() {
+        readWriteLock.readLock().lock();
+        try {
+            return valueMap;
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
+    }
+
+    private List<SensorData> concurrentProgramLogic(SensorData sensorData, List<SensorData> dataList) {
+        // CountDownLatch bat behar da, listak ez duelako denbora nahikorik
+        // kopiatzeko.
+        final CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        if (dataList.size() >= MAX_DATA_PER_PACKAGE) {
+            executorService.execute(() -> {
+                List<SensorData> copySensorDataList = new ArrayList<>(dataList);
+                countDownLatch.countDown(); // dataList-aren kopia egin dela abixatu
+                try (ByteArrayOutputStream avroFileStream = AvroSerializer.packToAvroFile(copySensorDataList)) {
+                    String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
+                            sensorData.getRoomId());
+                    RecordMetadata metadata = kafkaPublisher.sendData(queue, avroFileStream.toByteArray()).get();
+                    LOGGER.info("Data from Client {}, Building {}, Room: {} has been published. File size: {} bytes",
+                            sensorData.getClientId(), sensorData.getBuildingId(), sensorData.getRoomId(),
+                            avroFileStream.size());
+                } catch (IOException | InterruptedException | ExecutionException e) {
+                    LOGGER.error("Kafka Sender Thread Interrupted", e);
+                    Thread.currentThread().interrupt();
+                }
+            });
+            executorService.execute(() -> {
+                List<SensorData> copySensorDataList = new ArrayList<>(dataList);
+                countDownLatch.countDown(); // dataList-aren kopia egin dela abixatu
+                try {
+                    concurrentTakeAction(sensorData.getBuildingId(), sensorData.getRoomId(), copySensorDataList);
+                } catch (InterruptedException | ExecutionException e) {
+                    LOGGER.error("Action Taking Thread Interrupted", e);
+                    Thread.currentThread().interrupt();
+                }
+            });
+            try {
+                countDownLatch.await(); // Itxoin kopia guztiak egitea
+            } catch (InterruptedException e) {
+                LOGGER.error("Action Taking Thread Interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+            dataList.clear();
+        }
+        dataList.add(sensorData);
+        return dataList;
+    }
+
+    private void concurrentTakeAction(long buildingId, long roomId, List<SensorData> dataList)
+            throws InterruptedException, ExecutionException {
+        final int threshold = Math.max(1, dataList.size() / (CORE_COUNT * 2));
+        List<Callable<List<Integer>>> tasks = new ArrayList<>();
+        for (int i = 0; i < dataList.size(); i += threshold) {
+            int start = i;
+            int end = Math.min(i + threshold, dataList.size());
+            tasks.add(() -> {
+                int temperature = 0;
+                int soundLevel = 0;
+                int humidity = 0;
+                int pressure = 0;
+                for (int j = start; j < end; j++) {
+                    temperature += dataList.get(j).getTemperature();
+                    soundLevel += dataList.get(j).getSoundLevel();
+                    humidity += dataList.get(j).getHumidity();
+                    pressure += dataList.get(j).getPressure();
+                }
+                return Arrays.asList(temperature, soundLevel, humidity, pressure);
+            });
+        }
+
+        List<Future<List<Integer>>> results = executorService.invokeAll(tasks);
+
+        // Sum up the results from all tasks
+        int temperatureSum = 0;
+        int soundLevelSum = 0;
+        int humiditySum = 0;
+        int pressureSum = 0;
+        for (Future<List<Integer>> result : results) {
+            temperatureSum += result.get().get(0);
+            soundLevelSum += result.get().get(1);
+            humiditySum += result.get().get(2);
+            pressureSum += result.get().get(3);
+        }
+
+        final int temperatureMean = temperatureSum / dataList.size();
+        final int soundLevelMean = soundLevelSum / dataList.size();
+        final int humidityMean = humiditySum / dataList.size();
+        final int pressureMean = pressureSum / dataList.size();
+
+        getValueMap()
+                .get(buildingId)
+                .get(roomId)
+                .forEach(parameter -> {
+                    String action = "";
+                    switch (parameter.getMota()) {
+                        case ParametroMota.TEMPERATURE:
+                            action = actionCalculate(parameter, temperatureMean, "temperature",
+                                    parameter.isMinimoaDu());
+                            break;
+                        case ParametroMota.SOUND_LEVEL:
+                            action = actionCalculate(parameter, soundLevelMean, "sound", parameter.isMinimoaDu());
+                            break;
+                        case ParametroMota.HUMIDITY:
+                            action = actionCalculate(parameter, humidityMean, "humidity", parameter.isMinimoaDu());
+                            break;
+                        case ParametroMota.PRESSURE:
+                            action = actionCalculate(parameter, pressureMean, "pressure", parameter.isMinimoaDu());
+                            break;
+                        default:
+                            throw new UnsupportedOperationException("Unsupported action: " + parameter.getMota());
+                    }
+                    try {
+                        if (!action.isEmpty()) {
+                            actionSender.publish(roomId, buildingId, "action");
+                        }
+                    } catch (IOException | TimeoutException e) {
+                        LOGGER.error("Action publishing error", e);
+                    }
+                });
+    }
+
+    private String actionCalculate(Parametroa parameter, int valueMean, String parameterName, boolean hasMinimum) {
+        String action = "";
+        if (hasMinimum && parameter.getBalioMin() > valueMean) {
+            action = "Raise the " + parameterName;
+        }
+        if (parameter.getBalioMax() < valueMean) {
+            action = "Lower the " + parameterName;
+        }
+        return action;
+    }
+
+    private void concurrentUpdateValues() {
+        executorService.execute(() -> {
+            readWriteLock.writeLock().lock();
+            try {
+                sequentialUpdateValues();
+            } finally {
+                readWriteLock.writeLock().unlock();
+            }
+        });
+    }
+
+    private void sequentialUpdateValues() {
+        LOGGER.info("Retrieving data from cassandra...");
+        valueMap = cassandraConnector.getParameters();
+        LOGGER.info("Retrieving data from cassandra... - done");
     }
 }
