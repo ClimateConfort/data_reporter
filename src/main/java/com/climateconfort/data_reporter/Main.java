@@ -3,6 +3,7 @@ package com.climateconfort.data_reporter;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,14 +44,56 @@ import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
 import com.climateconfort.data_reporter.kafka.KafkaPublisher;
 
+// @SuppressWarnings("java:S125") // Kode asko komentatuta dago benchmark-ak direlako.
 public class Main {
 
     private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors(); // TODO: Ikusi thread kopurua
     private static final int MAX_DATA_PER_PACKAGE = 600;
     private static final Logger LOGGER = LogManager.getLogger(Main.class);
     private static final int UPDATE_TIME_MIN = 1;
+    private static final Properties COMPILATION_PROPERTIES = new Properties();
     private static final String PROGRAM_NAME = "data_reporter";
     private static final String PROGRAM_VERSION = "1.0.0";
+
+
+    public static void main(String[] args) {
+        try (InputStream input = Main.class.getClassLoader().getResourceAsStream("define.properties")) {
+            if (input == null) {
+                LOGGER.error("Unable to find 'define.properties' file");
+                return;
+            }
+            COMPILATION_PROPERTIES.load(input);
+        } catch (IOException e) {
+            LOGGER.error("Failed access 'define.properties'", e);
+        }
+
+        try {
+            CommandLine cmd = parseArguments(args);
+            if (cmd.hasOption("h")) {
+                HelpFormatter formatter = new HelpFormatter();
+                formatter.printHelp(PROGRAM_NAME, generateArgumentOptions());
+                return;
+            }
+
+            if (cmd.hasOption("v")) {
+                LOGGER.info("Version: {}", PROGRAM_VERSION);
+                return;
+            }
+
+            if (!cmd.hasOption("p")) {
+                LOGGER.error("No valid options provided. Use -h for help.");
+                return;
+            }
+
+            Main main = new Main(Paths.get(cmd.getOptionValue("p")));
+            main.setup(new Scanner(System.in));
+            main.start();
+        } catch (ParseException e) {
+            LOGGER.error("Error parsing command line arguments", e);
+        } catch (Exception e) {
+            LOGGER.error("Unknown error", e);
+        }
+    }
 
     private static Options generateArgumentOptions() {
         Options options = new Options();
@@ -64,35 +107,6 @@ public class Main {
         Options argOptions = generateArgumentOptions();
         CommandLineParser parser = new DefaultParser();
         return parser.parse(argOptions, args);
-    }
-
-    public static void main(String[] args) {
-        try {
-            CommandLine cmd = parseArguments(args);
-            if (cmd.hasOption("h")) {
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp(PROGRAM_NAME, generateArgumentOptions());
-                return;
-            }
-    
-            if (cmd.hasOption("v")) {
-                LOGGER.info("Version: {}", PROGRAM_VERSION);
-                return;
-            }
-    
-            if (!cmd.hasOption("p")) {
-                LOGGER.error("No valid options provided. Use -h for help.");
-                return;
-            }
-    
-            Main main = new Main(Paths.get(cmd.getOptionValue("p")));
-            main.setup(new Scanner(System.in));
-            main.start();
-        } catch (ParseException e) {
-            LOGGER.error("Error parsing command line arguments", e);
-        } catch (Exception e) {
-            LOGGER.error("Unknown error", e);
-        }
     }
 
     private final ActionSender actionSender;
@@ -136,6 +150,13 @@ public class Main {
             kafkaPublisher.close();
             dataReceiver.stop();
             isStop = true;
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(1, TimeUnit.MINUTES);
+            } catch (InterruptedException e) {
+                LOGGER.error("Executor Service Error", e);
+                Thread.currentThread().interrupt();
+            }
         });
 
         // kafkaPublisher.createTopics();
@@ -161,15 +182,22 @@ public class Main {
                         sensorDataMap
                                 .get(buildingId)
                                 .computeIfPresent(roomId,
-                                        // (key, dataList) -> concurrentProgramLogic(sensorData, dataList));
-                                        (key, dataList) -> sequentialProgramLogic(sensorData, dataList));
+                                        (key, dataList) -> {
+                                            if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty("sequentialExecution"))) {
+                                                return sequentialProgramLogic(sensorData, dataList);
+                                            }
+                                            return concurrentProgramLogic(sensorData, dataList);
+                                        });
                     });
 
             totalMilisecs += System.currentTimeMillis() - start;
             if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
                 totalMilisecs = 0;
-                // concurrentUpdateValues();
-                sequentialUpdateValues();
+                if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty("sequentialExecution"))) {
+                    sequentialUpdateValues();
+                } else {
+                    concurrentUpdateValues();
+                }
             }
         }
     }
@@ -206,6 +234,7 @@ public class Main {
                     concurrentTakeAction(sensorData.getBuildingId(), sensorData.getRoomId(), copySensorDataList);
                 } catch (InterruptedException | ExecutionException e) {
                     LOGGER.error("Action Taking Thread Interrupted", e);
+                    executorService.shutdown();
                     Thread.currentThread().interrupt();
                 }
             });
