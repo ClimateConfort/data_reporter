@@ -6,6 +6,6 @@ import com.datastax.oss.driver.api.mapper.annotations.Select;
 
 @Dao
 public interface GelaDao {
-    @Select(customWhereClause = "eraikina_id = :eraikinaId", allowFiltering = true)
-    PagingIterable<Gela> findAllByEraikinaId(long eraikinaId);
+    @Select(customWhereClause = "enpresa_id = :enpresaId AND eraikina_id = :eraikinaId", allowFiltering = true)
+    PagingIterable<Gela> findAllByEnpresaIdEraikinaId(long enpresaId, long eraikinaId);
 }
