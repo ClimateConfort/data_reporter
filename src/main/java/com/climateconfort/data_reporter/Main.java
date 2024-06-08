@@ -44,17 +44,16 @@ import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
 import com.climateconfort.data_reporter.kafka.KafkaPublisher;
 
-// @SuppressWarnings("java:S125") // Kode asko komentatuta dago benchmark-ak direlako.
 public class Main {
 
-    private static final int CORE_COUNT = Runtime.getRuntime().availableProcessors(); // TODO: Ikusi thread kopurua
+    private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final int MAX_DATA_PER_PACKAGE = 600;
     private static final Logger LOGGER = LogManager.getLogger(Main.class);
     private static final int UPDATE_TIME_MIN = 1;
     private static final Properties COMPILATION_PROPERTIES = new Properties();
     private static final String PROGRAM_NAME = "data_reporter";
     private static final String PROGRAM_VERSION = "1.0.0";
-
+    private static final String SEQUENTIAL_PROPERTY_NAME = "sequentialExecution";
 
     public static void main(String[] args) {
         try (InputStream input = Main.class.getClassLoader().getResourceAsStream("define.properties")) {
@@ -65,6 +64,11 @@ public class Main {
             COMPILATION_PROPERTIES.load(input);
         } catch (IOException e) {
             LOGGER.error("Failed access 'define.properties'", e);
+        }
+
+        if (Boolean.parseBoolean(
+                COMPILATION_PROPERTIES.getProperty(SEQUENTIAL_PROPERTY_NAME))) {
+            LOGGER.warn("Sequential Mode");
         }
 
         try {
@@ -127,7 +131,7 @@ public class Main {
         this.actionSender = new ActionSender(properties);
         this.cassandraConnector = new CassandraConnector(properties);
         this.dataReceiver = new DataReceiver(properties);
-        this.executorService = Executors.newWorkStealingPool(CORE_COUNT);
+        this.executorService = Executors.newWorkStealingPool(THREAD_COUNT);
         this.kafkaPublisher = new KafkaPublisher(properties);
         this.readWriteLock = new ReentrantReadWriteLock(true);
         this.isStop = false;
@@ -183,7 +187,8 @@ public class Main {
                                 .get(buildingId)
                                 .computeIfPresent(roomId,
                                         (key, dataList) -> {
-                                            if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty("sequentialExecution"))) {
+                                            if (Boolean.parseBoolean(
+                                                    COMPILATION_PROPERTIES.getProperty(SEQUENTIAL_PROPERTY_NAME))) {
                                                 return sequentialProgramLogic(sensorData, dataList);
                                             }
                                             return concurrentProgramLogic(sensorData, dataList);
@@ -193,7 +198,7 @@ public class Main {
             totalMilisecs += System.currentTimeMillis() - start;
             if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
                 totalMilisecs = 0;
-                if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty("sequentialExecution"))) {
+                if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty(SEQUENTIAL_PROPERTY_NAME))) {
                     sequentialUpdateValues();
                 } else {
                     concurrentUpdateValues();
@@ -234,7 +239,6 @@ public class Main {
                     concurrentTakeAction(sensorData.getBuildingId(), sensorData.getRoomId(), copySensorDataList);
                 } catch (InterruptedException | ExecutionException e) {
                     LOGGER.error("Action Taking Thread Interrupted", e);
-                    executorService.shutdown();
                     Thread.currentThread().interrupt();
                 }
             });
@@ -267,7 +271,7 @@ public class Main {
 
     private void concurrentTakeAction(long buildingId, long roomId, List<SensorData> dataList)
             throws InterruptedException, ExecutionException {
-        final int threshold = Math.max(1, dataList.size() / (CORE_COUNT * 2));
+        final int threshold = Math.max(1, dataList.size() / (THREAD_COUNT * 2));
         List<Callable<List<Integer>>> tasks = new ArrayList<>();
         for (int i = 0; i < dataList.size(); i += threshold) {
             int start = i;
@@ -346,7 +350,8 @@ public class Main {
 
     private void performAction(long buildingId, long roomId, int temperatureMean, int soundLevelMean, int humidityMean,
             int pressureMean) {
-        getValueMap()
+        try {
+            getValueMap()
                 .get(buildingId)
                 .get(roomId)
                 .forEach(parameter -> {
@@ -377,6 +382,9 @@ public class Main {
                         LOGGER.error("Action publishing error", e);
                     }
                 });
+        } catch (NullPointerException e) {
+            LOGGER.error("Not existing BuildingId: {} or RoomId: {}", buildingId, roomId, e);
+        }
     }
 
     private String actionCalculate(Parametroa parameter, int valueMean, String parameterName, boolean hasMinimum) {

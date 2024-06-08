@@ -1,4 +1,4 @@
-CREATE KEYSPACE climateconfort WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+CREATE KEYSPACE climateconfort WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
 
 USE climateconfort;
 
@@ -68,6 +68,14 @@ INSERT INTO Eraikina (enpresa_id, eraikina_id, lokalizazioa) VALUES (2, 1, 'Arra
 -- Insert Gela
 INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 1);
 INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 2);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 3);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 4);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 5);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 6);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 7);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 8);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 9);
+INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 1, 10);
 INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 2, 1);
 INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (1, 2, 2);
 INSERT INTO Gela (enpresa_id, eraikina_id, gela_id) VALUES (2, 1, 1);
@@ -83,6 +91,46 @@ INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, m
 INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 2, 2, 'SND', FALSE, NULL, 20.5);
 INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 2, 2, 'HMD', TRUE, 18.5, 20.5);
 INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 2, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 3, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 3, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 3, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 3, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 4, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 4, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 4, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 4, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 5, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 5, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 5, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 5, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 6, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 6, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 6, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 6, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 7, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 7, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 7, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 7, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 8, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 8, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 8, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 8, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 9, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 9, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 9, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 9, 2, 'PRS', TRUE, 18.5, 20.5);
+
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 10, 2, 'TMP', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 10, 2, 'SND', FALSE, NULL, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 10, 2, 'HMD', TRUE, 18.5, 20.5);
+INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 1, 10, 2, 'PRS', TRUE, 18.5, 20.5);
 
 INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 2, 1, 3, 'TMP', TRUE, 18.5, 20.5);
 INSERT INTO Parametroa (enpresa_id, eraikina_id, gela_id, parametroa_id, mota, minimoa_du, balio_min, balio_max) VALUES (1, 2, 1, 3, 'SND', FALSE, NULL, 20.5);
