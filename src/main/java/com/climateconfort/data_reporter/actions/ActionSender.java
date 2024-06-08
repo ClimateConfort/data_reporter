@@ -24,7 +24,7 @@ public class ActionSender {
     public void publish(long roomId, long buildingId, String action) throws IOException, TimeoutException {
         try (Connection connection = connectionFactory.newConnection();
                 Channel channel = connection.createChannel()) {
-            channel.exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, "topic");
+            channel.exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, "direct");
             channel.basicPublish(Constants.SENSOR_ACTION_EXCHANGE, String.format("%d.%d", buildingId, roomId), null,
                     action.getBytes());
         }
