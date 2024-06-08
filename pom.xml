@@ -10,6 +10,7 @@
     <properties>
         <sequentialExecution>false</sequentialExecution>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <sonar.exclusions>src/main/java/com/climateconfort/data_reporter/avro/SensorDataAvro.java</sonar.exclusions>
     </properties>
     <dependencies>
         <dependency>
