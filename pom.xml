@@ -224,6 +224,9 @@
                         <exclude>
                             com/climateconfort/data_reporter/cassandra/domain/**/*MapperBuilder*
                         </exclude>
+                        <exclude>
+                            com/climateconfort/data_reporter/avro/SensorDataAvro.*
+                        </exclude>
                     </excludes>
                 </configuration>
                 <executions>
