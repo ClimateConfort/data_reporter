@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -81,14 +83,15 @@ class DataReceiverTest {
 
     @Test
     void subscribeTest() throws InterruptedException, IOException, TimeoutException {
-        (new Thread(() -> {
+        Thread subscriberThread = new Thread(() -> {
             try {
                 dataReceiver.subscribe();
             } catch (IOException | TimeoutException | InterruptedException e) {
                 throw new RuntimeException("Runtime error!");
             }
-        })).start();
-        Thread.sleep(1000); // TODO: Awaitility erabili
+        });
+        subscriberThread.start();
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> subscriberThread.getState().equals(Thread.State.WAITING));
         dataReceiver.stop();
         verify(connectionFactory).newConnection();
         verify(connection).createChannel();
