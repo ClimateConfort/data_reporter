@@ -58,7 +58,7 @@ class ActionSenderTest {
         actionSender.publish(roomId, buildingId, "Action1");
         verify(connectionFactory).newConnection();
         verify(connection).createChannel();
-        verify(channel).exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, eq("direct"));
+        verify(channel).exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, "direct");
         verify(channel).basicPublish(eq(Constants.SENSOR_ACTION_EXCHANGE), eq(String.format(buildingId + "." + roomId)),
                 isNull(),
                 byteArrayCaptor.capture());
