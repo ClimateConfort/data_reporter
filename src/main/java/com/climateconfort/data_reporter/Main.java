@@ -318,7 +318,7 @@ public class Main {
         performAction(buildingId, roomId, temperatureMean, soundLevelMean, humidityMean, pressureMean);
     }
 
-    private void packAndPublish(SensorData sensorData, List<SensorData> copySensorDataList)
+    void packAndPublish(SensorData sensorData, List<SensorData> copySensorDataList)
             throws IOException, InterruptedException, ExecutionException {
         try (ByteArrayOutputStream avroFileStream = AvroSerializer.packToAvroFile(copySensorDataList)) {
             String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
@@ -356,42 +356,43 @@ public class Main {
             int pressureMean) {
         try {
             getValueMap()
-                .get(buildingId)
-                .get(roomId)
-                .forEach(parameter -> {
-                    String action = "";
-                    switch (parameter.getMota()) {
-                        case ParametroMota.TEMPERATURE:
-                            action = actionCalculate(parameter, temperatureMean, "temperature",
-                                    parameter.isMinimoaDu());
-                            break;
-                        case ParametroMota.SOUND_LEVEL:
-                            action = actionCalculate(parameter, soundLevelMean, "sound", parameter.isMinimoaDu());
-                            break;
-                        case ParametroMota.HUMIDITY:
-                            action = actionCalculate(parameter, humidityMean, "humidity", parameter.isMinimoaDu());
-                            break;
-                        case ParametroMota.PRESSURE:
-                            action = actionCalculate(parameter, pressureMean, "pressure", parameter.isMinimoaDu());
-                            break;
-                        default:
-                            throw new UnsupportedOperationException("Unsupported action: " + parameter.getMota());
-                    }
-                    try {
-                        if (!action.isEmpty()) {
-                            actionSender.publish(roomId, buildingId, action);
-                            LOGGER.info("Action '{}' published to Building: {}, Room: {}", action, buildingId, roomId);
+                    .get(buildingId)
+                    .get(roomId)
+                    .forEach(parameter -> {
+                        String action = "";
+                        switch (parameter.getMota()) {
+                            case ParametroMota.TEMPERATURE:
+                                action = actionCalculate(parameter, temperatureMean, "temperature",
+                                        parameter.isMinimoaDu());
+                                break;
+                            case ParametroMota.SOUND_LEVEL:
+                                action = actionCalculate(parameter, soundLevelMean, "sound", parameter.isMinimoaDu());
+                                break;
+                            case ParametroMota.HUMIDITY:
+                                action = actionCalculate(parameter, humidityMean, "humidity", parameter.isMinimoaDu());
+                                break;
+                            case ParametroMota.PRESSURE:
+                                action = actionCalculate(parameter, pressureMean, "pressure", parameter.isMinimoaDu());
+                                break;
+                            default:
+                                throw new UnsupportedOperationException("Unsupported action: " + parameter.getMota());
                         }
-                    } catch (IOException | TimeoutException e) {
-                        LOGGER.error("Action publishing error", e);
-                    }
-                });
+                        try {
+                            if (!action.isEmpty()) {
+                                actionSender.publish(roomId, buildingId, action);
+                                LOGGER.info("Action '{}' published to Building: {}, Room: {}", action, buildingId,
+                                        roomId);
+                            }
+                        } catch (IOException | TimeoutException e) {
+                            LOGGER.error("Action publishing error", e);
+                        }
+                    });
         } catch (NullPointerException e) {
             LOGGER.error("Not existing BuildingId: {} or RoomId: {}", buildingId, roomId, e);
         }
     }
 
-    private String actionCalculate(Parametroa parameter, int valueMean, String parameterName, boolean hasMinimum) {
+    String actionCalculate(Parametroa parameter, int valueMean, String parameterName, boolean hasMinimum) {
         String action = "";
         if (hasMinimum && parameter.getBalioMin() > valueMean) {
             action = "Raise the " + parameterName;
@@ -402,7 +403,7 @@ public class Main {
         return action;
     }
 
-    private void concurrentUpdateValues() {
+    void concurrentUpdateValues() {
         executorService.execute(() -> {
             readWriteLock.writeLock().lock();
             try {
@@ -413,7 +414,7 @@ public class Main {
         });
     }
 
-    private void sequentialUpdateValues() {
+    void sequentialUpdateValues() {
         LOGGER.info("Retrieving data from cassandra...");
         valueMap = cassandraConnector.getParameters();
         LOGGER.info("Retrieving data from cassandra... - done");
