@@ -33,7 +33,9 @@ public class DataReceiver {
 
     private boolean isStop;
 
-    // PublisherID: String = String(buildingId) + "-" + String(roomId);
+    /*
+     * PublisherID: String = String(buildingId) + "-" + String(roomId)
+     */
     public DataReceiver(Properties properties) throws NumberFormatException {
         this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         this.connectionFactory = new ConnectionFactory();
