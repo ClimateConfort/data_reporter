@@ -28,7 +28,7 @@ public class CassandraConnector implements AutoCloseable {
     private final ParametroaDao parametroaDao;
 
     public CassandraConnector(Properties properties) {
-        this.clientId = Integer.parseInt(properties.getProperty("climate_confort.client_id", "NaN"));
+        this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         String username = properties.getProperty("cassandra.username", "cassandra");
         String password = properties.getProperty("cassandra.password", "cassandra");
         String datacenterName = properties.getProperty("cassandra.datacenter", "datacenter1");
@@ -59,18 +59,18 @@ public class CassandraConnector implements AutoCloseable {
                 .parametroaDao();
     }
 
-    public Map<Integer, Map<Integer, List<Parametroa>>> getParameters() {
-        Map<Integer, Map<Integer, List<Parametroa>>> eraikinMap = new HashMap<>();
+    public Map<Long, Map<Long, List<Parametroa>>> getParameters() {
+        Map<Long, Map<Long, List<Parametroa>>> eraikinMap = new HashMap<>();
         for (Eraikina eraikina : eraikinaDao.findAllByEnpresaId(clientId)) {
-            Map<Integer, List<Parametroa>> gelaMap = new HashMap<>();
-            for (Gela gela : gelaDao.findAllByEraikinaId(eraikina.getId())) {
+            Map<Long, List<Parametroa>> gelaMap = new HashMap<>();
+            for (Gela gela : gelaDao.findAllByEnpresaIdEraikinaId(clientId, eraikina.getEraikinaId())) {
                 List<Parametroa> parametroaList = new ArrayList<>();
-                for (Parametroa parametroa : parametroaDao.findAllByGelaId(gela.getId())) {
+                for (Parametroa parametroa : parametroaDao.findAllByEnpresaIdEraikinaIdGelaId(clientId, eraikina.getEraikinaId(), gela.getGelaId())) {
                     parametroaList.add(parametroa);
                 }
-                gelaMap.put(gela.getId(), parametroaList);
+                gelaMap.put(gela.getGelaId(), parametroaList);
             }
-            eraikinMap.put(eraikina.getId(), gelaMap);
+            eraikinMap.put(eraikina.getEraikinaId(), gelaMap);
         }
         return eraikinMap;
     }

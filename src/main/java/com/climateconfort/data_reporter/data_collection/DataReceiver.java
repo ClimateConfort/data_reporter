@@ -3,12 +3,16 @@ package com.climateconfort.data_reporter.data_collection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.climateconfort.common.Constants;
 import com.climateconfort.common.SensorData;
@@ -29,15 +33,20 @@ public class DataReceiver {
 
     private boolean isStop;
 
-    // PublisherID: String = String(buildingId) + "-" + String(roomId);
-    public DataReceiver(Properties properties, List<String> publisherIdList) throws NumberFormatException {
-        this.clientId = Integer.parseInt(properties.getProperty("client_id", "NaN"));
+    /*
+     * PublisherID: String = String(buildingId) + "-" + String(roomId)
+     */
+    public DataReceiver(Properties properties) throws NumberFormatException {
+        this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         this.connectionFactory = new ConnectionFactory();
-        this.connectionFactory.setHost(properties.getProperty("rabbitmq_server_ip", "localhost"));
-        this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq_server_port", "5672")));
-        this.connectionFactory.setUsername(properties.getProperty("rabbitmq_server_user", "guest"));
-        this.connectionFactory.setPassword(properties.getProperty("rabbitmq_server_password", "guest"));
-        this.publisherIdList = publisherIdList;
+        this.connectionFactory.setHost(properties.getProperty("rabbitmq.server.ip", "localhost"));
+        this.connectionFactory.setPort(Integer.parseInt(properties.getProperty("rabbitmq.server.port", "5672")));
+        this.connectionFactory.setUsername(properties.getProperty("rabbitmq.server.user", "guest"));
+        this.connectionFactory.setPassword(properties.getProperty("rabbitmq.server.password", "guest"));
+        this.publisherIdList = Arrays
+                .asList(properties
+                        .getProperty("climateconfort.publishers")
+                        .split(","));
         this.dataQueue = new ConcurrentLinkedQueue<>();
         this.isStop = false;
     }
@@ -76,6 +85,8 @@ public class DataReceiver {
 
     public class SensorDataConsumer extends DefaultConsumer {
 
+        private static final Logger LOGGER = LogManager.getLogger(SensorDataConsumer.class);
+
         public SensorDataConsumer(Channel channel) {
             super(channel);
         }
@@ -88,7 +99,7 @@ public class DataReceiver {
                 SensorData sensorData = (SensorData) inputObject.readObject();
                 dataQueue.add(sensorData);
             } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
+                LOGGER.error("Sensor Data Delivery Error", e);
             }
         }
     }
