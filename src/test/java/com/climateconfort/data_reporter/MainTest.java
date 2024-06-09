@@ -3,10 +3,15 @@ package com.climateconfort.data_reporter;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -15,7 +20,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,11 +51,10 @@ import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
-
 import com.climateconfort.common.SensorData;
 import com.climateconfort.data_reporter.actions.ActionSender;
 import com.climateconfort.data_reporter.cassandra.CassandraConnector;
+import com.climateconfort.data_reporter.cassandra.domain.parametroa.ParametroMota;
 import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
 import com.climateconfort.data_reporter.kafka.KafkaPublisher;
@@ -133,8 +137,7 @@ class MainTest {
     void testSetupCorrect() throws IOException, TimeoutException, InterruptedException {
         Scanner scanner = mock(Scanner.class);
         main.setup(scanner);
-        verify(dataReceiver).subscribe();
-        verify(scanner).nextLine();
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> verify(dataReceiver).subscribe());
     }
 
     @Test
@@ -158,7 +161,52 @@ class MainTest {
     }
 
     @Test
-    void sequentialProgramLogicTestBigListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
+    void countDownLatchFactoryTest() {
+        CountDownLatch countDownLatch = new CountDownLatch(2);
+        assertEquals(countDownLatch.getCount(), main.countDownLatchFactory(2).getCount());
+    }
+
+    @Test
+    void concurrentProgramLogicSmallListTest() {
+        SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+        List<SensorData> sensorDataList = new ArrayList<>();
+        var retList = main.concurrentProgramLogic(sensorData, sensorDataList);
+        assertTrue(retList.contains(sensorData));
+    }
+
+    @Test
+    void concurrentProgramLogicBigListTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, IOException, InterruptedException, ExecutionException {
+        List<SensorData> sensorDataList = new ArrayList<>();
+        SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+        Field field = setFieldPublic(Main.class, "MAX_DATA_PER_PACKAGE");
+
+        for (int i = 0; i < (int) field.get(null); i++) {
+            sensorDataList.add(sensorData);
+        }
+
+        ExecutorService mockExecutorService = mock(ExecutorService.class);
+        setField(main, "executorService", mockExecutorService);
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        CountDownLatch mockCountDownLatch = mock(CountDownLatch.class);
+        doNothing().when(mockExecutorService).execute(runnableCaptor.capture());
+        doThrow(InterruptedException.class).when(main).packAndPublish(any(), any());
+        doThrow(InterruptedException.class).when(main).concurrentTakeAction(anyLong(), anyLong(), anyList());
+        doReturn(mockCountDownLatch).when(main).countDownLatchFactory(anyInt());
+        doThrow(InterruptedException.class).when(mockCountDownLatch).await();
+        var retList = main.concurrentProgramLogic(sensorData, sensorDataList);
+        var runnables = runnableCaptor.getAllValues();
+
+        for (Runnable runnable : runnables) {
+            runnable.run();
+        }
+
+        verify(mockExecutorService, times(2)).execute(any());
+        assertTrue(retList.contains(sensorData));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void sequentialProgramLogicBigListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException, NoSuchFieldException, IOException, InterruptedException, ExecutionException {
         List<SensorData> sensorDataList = new ArrayList<>();
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
@@ -168,7 +216,7 @@ class MainTest {
             sensorDataList.add(sensorData);
         }
         
-        doThrow(IOException.class).when(main).packAndPublish(sensorData, sensorDataList);
+        doThrow(InterruptedException.class).when(main).packAndPublish(sensorData, sensorDataList);
         
         Method method = setMethodPublic(Main.class, "sequentialProgramLogic", SensorData.class, List.class);
         List<SensorData> retList = (List<SensorData>) method.invoke(main, sensorData, sensorDataList);
@@ -179,9 +227,199 @@ class MainTest {
     void sequentialProgramLogicSmallListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
         List<SensorData> sensorDataList = new ArrayList<>();
-        Method method = setMethodPublic(Main.class, "sequentialProgramLogic", SensorData.class, List.class);
-        List<SensorData> retList = (List<SensorData>) method.invoke(main, sensorData, sensorDataList);
+        var retList = main.sequentialProgramLogic(sensorData, sensorDataList);
         assertTrue(retList.contains(sensorData));
+    }
+
+    @Test
+    void concurrentTakeActionTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, InterruptedException, ExecutionException {
+        SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+        List<SensorData> sensorDataList = new ArrayList<>();
+        sensorDataList.add(sensorData);
+        ExecutorService spyExecutorService = Executors.newSingleThreadExecutor();
+        spyExecutorService = spy(spyExecutorService);
+        setField(main, "executorService", spyExecutorService);
+        main.concurrentTakeAction(1, 1, sensorDataList);
+        verify(spyExecutorService).invokeAll(anyList());
+    }
+
+    @Test
+    void performActionTemperatureTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn(ParametroMota.TEMPERATURE);
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+        
+        // Mock actionCalculate method
+        doReturn("Raise the temperature").when(main).actionCalculate(parametroa, 5, "temperature", true);
+
+        // Call the method to test
+        main.performAction(1L, 1L, 5, 0, 0, 0);
+
+        // Capture the arguments for the actionSender.publish method
+        ArgumentCaptor<Long> roomIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> buildingIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> actionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(actionSender).publish(roomIdCaptor.capture(), buildingIdCaptor.capture(), actionCaptor.capture());
+
+        // Assert the captured arguments
+        assertEquals(1L, roomIdCaptor.getValue());
+        assertEquals(1L, buildingIdCaptor.getValue());
+        assertEquals("Raise the temperature", actionCaptor.getValue());
+
+        // Verify the logging
+        verify(main).performAction(1L, 1L, 5, 0, 0, 0);
+    }
+
+    @Test
+    void performActionSoundTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn(ParametroMota.SOUND_LEVEL);
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+        
+        // Mock actionCalculate method
+        doReturn("Raise the sound").when(main).actionCalculate(parametroa, 5, "sound", true);
+
+        // Call the method to test
+        main.performAction(1L, 1L, 5, 0, 0, 0);
+
+        // Capture the arguments for the actionSender.publish method
+        ArgumentCaptor<Long> roomIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> buildingIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> actionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(actionSender).publish(roomIdCaptor.capture(), buildingIdCaptor.capture(), actionCaptor.capture());
+
+        // Assert the captured arguments
+        assertEquals(1L, roomIdCaptor.getValue());
+        assertEquals(1L, buildingIdCaptor.getValue());
+        assertEquals("Raise the sound", actionCaptor.getValue());
+
+        // Verify the logging
+        verify(main).performAction(1L, 1L, 5, 0, 0, 0);
+    }
+
+    @Test
+    void performActionHumidityTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn(ParametroMota.HUMIDITY);
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+        
+        // Mock actionCalculate method
+        doReturn("Raise the humidity").when(main).actionCalculate(parametroa, 5, "humidity", true);
+
+        // Call the method to test
+        main.performAction(1L, 1L, 5, 0, 0, 0);
+
+        // Capture the arguments for the actionSender.publish method
+        ArgumentCaptor<Long> roomIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> buildingIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> actionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(actionSender).publish(roomIdCaptor.capture(), buildingIdCaptor.capture(), actionCaptor.capture());
+
+        // Assert the captured arguments
+        assertEquals(1L, roomIdCaptor.getValue());
+        assertEquals(1L, buildingIdCaptor.getValue());
+        assertEquals("Raise the humidity", actionCaptor.getValue());
+
+        // Verify the logging
+        verify(main).performAction(1L, 1L, 5, 0, 0, 0);
+    }
+
+    @Test
+    void performActionPressureTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn(ParametroMota.PRESSURE);
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+        
+        // Mock actionCalculate method
+        doReturn("Raise the pressure").when(main).actionCalculate(parametroa, 5, "pressure", true);
+
+        // Call the method to test
+        main.performAction(1L, 1L, 5, 0, 0, 0);
+
+        // Capture the arguments for the actionSender.publish method
+        ArgumentCaptor<Long> roomIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> buildingIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> actionCaptor = ArgumentCaptor.forClass(String.class);
+        verify(actionSender).publish(roomIdCaptor.capture(), buildingIdCaptor.capture(), actionCaptor.capture());
+
+        // Assert the captured arguments
+        assertEquals(1L, roomIdCaptor.getValue());
+        assertEquals(1L, buildingIdCaptor.getValue());
+        assertEquals("Raise the pressure", actionCaptor.getValue());
+
+        // Verify the logging
+        verify(main).performAction(1L, 1L, 5, 0, 0, 0);
+    }
+
+    @Test
+    void performActionTypeExceptionTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn("ZABORRA");
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+
+        // Mock actionCalculate method
+        doReturn("Raise the pressure").when(main).actionCalculate(parametroa, 5, "pressure", true);
+
+        assertThrows(UnsupportedOperationException.class, () -> main.performAction(1L, 1L, 5, 0, 0, 0));
+    }
+
+    @Test
+    void performActionPublishExceptionTest() throws IOException, TimeoutException {
+        // Mock the getValueMap method
+        Parametroa parametroa = mock(Parametroa.class);
+        Map<Long, List<Parametroa>> roomMap = Map.of(1L, List.of(parametroa));
+        Map<Long, Map<Long, List<Parametroa>>> buildingMap = Map.of(1L, roomMap);
+        doReturn(buildingMap).when(main).getValueMap();
+
+        // Mock parameter methods
+        when(parametroa.getMota()).thenReturn(ParametroMota.PRESSURE);
+        when(parametroa.isMinimoaDu()).thenReturn(true);
+        when(parametroa.getBalioMin()).thenReturn(10.0f);
+        when(parametroa.getBalioMax()).thenReturn(50.0f);
+        doReturn("Raise the pressure").when(main).actionCalculate(parametroa, 5, "pressure", true);
+        doThrow(IOException.class).when(actionSender).publish(anyLong(), anyLong(), anyString());
+
+        assertDoesNotThrow(() -> main.performAction(1L, 1L, 5, 0, 0, 0));
     }
 
     @Test
@@ -189,21 +427,14 @@ class MainTest {
         // Mock the Parametroa dependency
         Parametroa mockParameter = Mockito.mock(Parametroa.class);
 
-        // Define test cases
         String parameterName = "TestParameter";
 
-        // Case 1: hasMinimum is true, parameter.getBalioMin() > valueMean
-        Mockito.when(mockParameter.getBalioMin()).thenReturn(10.0f);
-        Mockito.when(mockParameter.getBalioMax()).thenReturn(50.0f);
+        when(mockParameter.getBalioMin()).thenReturn(10.0f);
+        when(mockParameter.getBalioMax()).thenReturn(50.0f);
+
         assertEquals("Raise the TestParameter", main.actionCalculate(mockParameter, 5, parameterName, true));
-
-        // Case 2: parameter.getBalioMax() < valueMean
         assertEquals("Lower the TestParameter", main.actionCalculate(mockParameter, 60, parameterName, true));
-
-        // Case 3: Both conditions are false
         assertEquals("", main.actionCalculate(mockParameter, 30, parameterName, true));
-
-        // Case 4: hasMinimum is false, should not check BalioMin
         assertEquals("Lower the TestParameter", main.actionCalculate(mockParameter, 60, parameterName, false));
         assertEquals("", main.actionCalculate(mockParameter, 30, parameterName, false));
     }

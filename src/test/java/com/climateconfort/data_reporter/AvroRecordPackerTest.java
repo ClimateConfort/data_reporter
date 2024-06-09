@@ -1,12 +1,10 @@
 package com.climateconfort.data_reporter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -15,10 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.file.SeekableByteArrayInput;
-import org.apache.avro.specific.SpecificDatumReader;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,10 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import com.climateconfort.common.SensorData;
-import com.climateconfort.data_reporter.avro.AvroSerializer;
+import com.climateconfort.data_reporter.avro.AvroRecordPacker;
 import com.climateconfort.data_reporter.avro.SensorDataAvro;
 
-public class AvroSerializerTest {
+class AvroRecordPackerTest {
 
     private Random random;
 
@@ -40,7 +35,7 @@ public class AvroSerializerTest {
     private DataFileWriter<SensorDataAvro> dataFileWriter;
 
     @InjectMocks
-    private AvroSerializer avroSerializer;
+    private AvroRecordPacker avroSerializer;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -53,7 +48,7 @@ public class AvroSerializerTest {
     @Test
     void constructorTest() throws NoSuchMethodException, SecurityException, InstantiationException,
             IllegalAccessException, IllegalArgumentException {
-        Constructor<AvroSerializer> constructor = AvroSerializer.class.getDeclaredConstructor();
+        Constructor<AvroRecordPacker> constructor = AvroRecordPacker.class.getDeclaredConstructor();
         assertTrue(Modifier.isPrivate(constructor.getModifiers()));
         constructor.setAccessible(true);
         try {
@@ -67,39 +62,27 @@ public class AvroSerializerTest {
     }
 
     @Test
-    public void testPackToAvroFile() throws IOException {
-        // Arrange
+    void testPackToFile() throws IOException {
         List<SensorData> sensorDataList = new ArrayList<>();
-
         for (int i = 0; i < 10000; i++) {
             sensorDataList.add(new SensorData(random.nextLong(), 1, random.nextLong(), random.nextLong(),
                     random.nextFloat(), random.nextFloat(), random.nextFloat(), random.nextFloat(), random.nextFloat(),
                     random.nextFloat()));
         }
 
-        ByteArrayOutputStream arrayOutputStream = AvroSerializer.packToAvroFile(sensorDataList);
-        assertNotNull(arrayOutputStream);
-
-        try (DataFileReader<SensorDataAvro> dataFileReader = new DataFileReader<>(
-                new SeekableByteArrayInput(arrayOutputStream.toByteArray()),
-                new SpecificDatumReader<>(SensorDataAvro.class))) {
-            int i = 0;
-            while (dataFileReader.hasNext()) {
-                SensorDataAvro sensorDataAvro = dataFileReader.next();
-                SensorData sensorData = sensorDataList.get(i);
-                assertEquals(sensorDataAvro.getUnixTime(), sensorData.getUnixTime());
-                assertEquals(sensorDataAvro.getRoomId(), sensorData.getRoomId());
-                assertEquals(sensorDataAvro.getBuildingId(), sensorData.getBuildingId());
-                assertEquals(sensorDataAvro.getClientId(), sensorData.getClientId());
-                assertEquals(sensorDataAvro.getTemperature(), sensorData.getTemperature());
-                assertEquals(sensorDataAvro.getSoundLevel(), sensorData.getSoundLevel());
-                assertEquals(sensorDataAvro.getHumidity(), sensorData.getHumidity());
-                assertEquals(sensorDataAvro.getPressure(), sensorData.getPressure());
-                i++;
-            }
-
-            assertEquals(sensorDataList.size(), i);
+        List<SensorDataAvro> sensorDataAvros = AvroRecordPacker.packToList(sensorDataList);
+        assertEquals(sensorDataAvros.size(), sensorDataList.size());
+        for (int i = 0; i < sensorDataAvros.size(); i++) {
+            SensorDataAvro sensorDataAvro = sensorDataAvros.get(i);
+            SensorData sensorData = sensorDataList.get(i);
+            assertEquals(sensorDataAvro.getUnixTime(), sensorData.getUnixTime());
+            assertEquals(sensorDataAvro.getRoomId(), sensorData.getRoomId());
+            assertEquals(sensorDataAvro.getBuildingId(), sensorData.getBuildingId());
+            assertEquals(sensorDataAvro.getClientId(), sensorData.getClientId());
+            assertEquals(sensorDataAvro.getTemperature(), sensorData.getTemperature());
+            assertEquals(sensorDataAvro.getSoundLevel(), sensorData.getSoundLevel());
+            assertEquals(sensorDataAvro.getHumidity(), sensorData.getHumidity());
+            assertEquals(sensorDataAvro.getPressure(), sensorData.getPressure());
         }
-
     }
 }

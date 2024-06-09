@@ -1,7 +1,6 @@
 package com.climateconfort.data_reporter;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -31,13 +30,12 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.climateconfort.common.SensorData;
 import com.climateconfort.data_reporter.actions.ActionSender;
-import com.climateconfort.data_reporter.avro.AvroSerializer;
+import com.climateconfort.data_reporter.avro.AvroRecordPacker;
 import com.climateconfort.data_reporter.cassandra.CassandraConnector;
 import com.climateconfort.data_reporter.cassandra.domain.parametroa.ParametroMota;
 import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
@@ -108,7 +106,7 @@ public class Main {
         return options;
     }
 
-    private static CommandLine parseArguments(String[] args) throws ParseException {
+    static CommandLine parseArguments(String[] args) throws ParseException {
         Options argOptions = generateArgumentOptions();
         CommandLineParser parser = new DefaultParser();
         return parser.parse(argOptions, args);
@@ -176,6 +174,7 @@ public class Main {
         long totalMilisecs = 0;
         Map<Long, Map<Long, List<SensorData>>> sensorDataMap = new HashMap<>();
         sequentialUpdateValues();
+        heartbeatSender.publish();
         while (!isStop) {
             long start = System.currentTimeMillis();
             dataReceiver
@@ -211,7 +210,7 @@ public class Main {
         }
     }
 
-    private Map<Long, Map<Long, List<Parametroa>>> getValueMap() {
+    Map<Long, Map<Long, List<Parametroa>>> getValueMap() {
         readWriteLock.readLock().lock();
         try {
             return valueMap;
@@ -220,10 +219,14 @@ public class Main {
         }
     }
 
-    private List<SensorData> concurrentProgramLogic(SensorData sensorData, List<SensorData> dataList) {
+    CountDownLatch countDownLatchFactory(int count) {
+        return new CountDownLatch(count);
+    }
+
+    List<SensorData> concurrentProgramLogic(SensorData sensorData, List<SensorData> dataList) {
         // CountDownLatch bat behar da, listak ez duelako denbora nahikorik
         // kopiatzeko.
-        final CountDownLatch countDownLatch = new CountDownLatch(2);
+        final CountDownLatch countDownLatch = countDownLatchFactory(2);
 
         if (dataList.size() >= MAX_DATA_PER_PACKAGE) {
             executorService.execute(() -> {
@@ -231,7 +234,7 @@ public class Main {
                 countDownLatch.countDown(); // dataList-aren kopia egin dela abixatu
                 try {
                     packAndPublish(sensorData, copySensorDataList);
-                } catch (IOException | InterruptedException | ExecutionException e) {
+                } catch (InterruptedException | ExecutionException e) {
                     LOGGER.error("Kafka Sender Thread Interrupted", e);
                     Thread.currentThread().interrupt();
                 }
@@ -258,11 +261,11 @@ public class Main {
         return dataList;
     }
 
-    private List<SensorData> sequentialProgramLogic(SensorData sensorData, List<SensorData> dataList) {
+    List<SensorData> sequentialProgramLogic(SensorData sensorData, List<SensorData> dataList) {
         if (dataList.size() >= MAX_DATA_PER_PACKAGE) {
             try {
                 packAndPublish(sensorData, dataList);
-            } catch (IOException | InterruptedException | ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 LOGGER.error("Kafka sender interrupted", e);
                 Thread.currentThread().interrupt();
             }
@@ -273,7 +276,7 @@ public class Main {
         return dataList;
     }
 
-    private void concurrentTakeAction(long buildingId, long roomId, List<SensorData> dataList)
+    void concurrentTakeAction(long buildingId, long roomId, List<SensorData> dataList)
             throws InterruptedException, ExecutionException {
         final int threshold = Math.max(1, dataList.size() / (THREAD_COUNT * 2));
         List<Callable<List<Integer>>> tasks = new ArrayList<>();
@@ -319,16 +322,13 @@ public class Main {
     }
 
     void packAndPublish(SensorData sensorData, List<SensorData> copySensorDataList)
-            throws IOException, InterruptedException, ExecutionException {
-        try (ByteArrayOutputStream avroFileStream = AvroSerializer.packToAvroFile(copySensorDataList)) {
-            String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
-                    sensorData.getRoomId());
-            RecordMetadata metadata = kafkaPublisher.sendData(queue, avroFileStream.toByteArray()).get();
-            LOGGER.info("Data from Client {}, Building {}, Room: {} has been published. File size: {} bytes",
-                    sensorData.getClientId(), sensorData.getBuildingId(), sensorData.getRoomId(),
-                    avroFileStream.size());
-            LOGGER.debug("Data sent to Partition: '{}', Offset: {}", metadata.partition(), metadata.offset());
-        }
+            throws InterruptedException, ExecutionException {
+        String queue = String.format("%d.%d.%d", sensorData.getClientId(), sensorData.getBuildingId(),
+                sensorData.getRoomId());
+        kafkaPublisher.sendData(queue, AvroRecordPacker.packToList(copySensorDataList));
+        LOGGER.info("Data from Client {}, Building {}, Room: {} has been published",
+                sensorData.getClientId(), sensorData.getBuildingId(), sensorData.getRoomId());
+        // 
     }
 
     private void sequentialTakeAction(long buildingId, long roomId, List<SensorData> dataList) {
@@ -352,7 +352,7 @@ public class Main {
         performAction(buildingId, roomId, temperatureMean, soundLevelMean, humidityMean, pressureMean);
     }
 
-    private void performAction(long buildingId, long roomId, int temperatureMean, int soundLevelMean, int humidityMean,
+    void performAction(long buildingId, long roomId, int temperatureMean, int soundLevelMean, int humidityMean,
             int pressureMean) {
         try {
             getValueMap()
