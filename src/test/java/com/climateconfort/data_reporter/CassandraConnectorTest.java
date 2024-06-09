@@ -114,7 +114,7 @@ class CassandraConnectorTest {
 
     private Properties getProperties() {
         Properties properties = new Properties();
-        properties.setProperty("climate_confort.client_id", "1");
+        properties.setProperty("climateconfort.client_id", "1");
         properties.setProperty("cassandra.username", "cassandra");
         properties.setProperty("cassandra.password", "cassandra");
         properties.setProperty("cassandra.datacenter", "datacenter1");
@@ -133,8 +133,8 @@ class CassandraConnectorTest {
 
         // Mocking the behavior of DAO methods
         when(eraikinaDao.findAllByEnpresaId(1)).thenReturn(pagingIterableEraikina);
-        when(gelaDao.findAllByEraikinaId(1)).thenReturn(pagingIterableGela);
-        when(parametroaDao.findAllByGelaId(1)).thenReturn(pagingIterableParametroa);
+        when(gelaDao.findAllByEnpresaIdEraikinaId(1, 1)).thenReturn(pagingIterableGela);
+        when(parametroaDao.findAllByEnpresaIdEraikinaIdGelaId(1, 1, 1)).thenReturn(pagingIterableParametroa);
 
         // Mocking PagingIterables
         when(pagingIterableEraikina.iterator()).thenReturn(Collections.singletonList(eraikina).iterator());
@@ -142,18 +142,18 @@ class CassandraConnectorTest {
         when(pagingIterableParametroa.iterator()).thenReturn(Collections.singletonList(parametroa).iterator());
 
         // Call the method to test
-        Map<Integer, Map<Integer, List<Parametroa>>> parameters = cassandraConnector.getParameters();
+        Map<Long, Map<Long, List<Parametroa>>> parameters = cassandraConnector.getParameters();
 
         // Verify the result
         assertEquals(1, parameters.size());
-        assertEquals(1, parameters.get(1).size());
-        assertEquals(1, parameters.get(1).get(1).size());
-        assertEquals(parametroa, parameters.get(1).get(1).get(0));
+        assertEquals(1, parameters.get(1L).size());
+        assertEquals(1, parameters.get(1L).get(1L).size());
+        assertEquals(parametroa, parameters.get(1L).get(1L).get(0));
 
         // Verify interactions
         verify(eraikinaDao).findAllByEnpresaId(1);
-        verify(gelaDao).findAllByEraikinaId(1);
-        verify(parametroaDao).findAllByGelaId(1);
+        verify(gelaDao).findAllByEnpresaIdEraikinaId(1, 1);
+        verify(parametroaDao).findAllByEnpresaIdEraikinaIdGelaId(1, 1, 1);
     }
 
     @Test
@@ -164,7 +164,7 @@ class CassandraConnectorTest {
 
     private Parametroa generateParametroa(int id, String mota, float balioMax, float balioMin, int gelaId) {
         Parametroa parametroa = new Parametroa();
-        parametroa.setId(id);
+        parametroa.setParametroaId(id);
         parametroa.setMota(mota);
         parametroa.setBalioMax(balioMax);
         parametroa.setBalioMin(balioMin);
@@ -174,14 +174,14 @@ class CassandraConnectorTest {
 
     private Gela generateGela(int id, int eraikinaId) {
         Gela gela = new Gela();
-        gela.setId(id);
+        gela.setGelaId(id);
         gela.setEraikinaId(eraikinaId);
         return gela;
     }
 
     private Eraikina generateEraikina(int id, String lokalizazioa, int enpresaId) {
         Eraikina eraikina = new Eraikina();
-        eraikina.setId(id);
+        eraikina.setEraikinaId(id);
         eraikina.setLokalizazioa(lokalizazioa);
         eraikina.setEnpresaId(enpresaId);
         return eraikina;

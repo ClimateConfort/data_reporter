@@ -24,7 +24,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
-public class ActionSenderTest {
+class ActionSenderTest {
 
     private static final int roomId = 1;
     private static final int buildingId = 1;
@@ -58,14 +58,14 @@ public class ActionSenderTest {
         actionSender.publish(roomId, buildingId, "Action1");
         verify(connectionFactory).newConnection();
         verify(connection).createChannel();
-        verify(channel).exchangeDeclare(eq(Constants.SENSOR_ACTION_EXCHANGE), eq("topic"));
+        verify(channel).exchangeDeclare(Constants.SENSOR_ACTION_EXCHANGE, "direct");
         verify(channel).basicPublish(eq(Constants.SENSOR_ACTION_EXCHANGE), eq(String.format(buildingId + "." + roomId)),
                 isNull(),
                 byteArrayCaptor.capture());
         
         byte[] capturedArray = byteArrayCaptor.getValue();
         String action = new String(capturedArray);
-        assertEquals(action, "Action1");
+        assertEquals("Action1", action);
     }
 
     private Properties getProperties() {

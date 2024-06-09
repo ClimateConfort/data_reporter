@@ -1,7 +1,7 @@
 package com.climateconfort.data_reporter;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -12,13 +12,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectStreamConstants;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -34,7 +36,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.Envelope;
 
-public class DataReceiverTest {
+class DataReceiverTest {
 
     private static final int clientId = 1;
 
@@ -66,23 +68,30 @@ public class DataReceiverTest {
         when(connection.createChannel()).thenReturn(channel);
         when(channel.queueDeclare()).thenReturn(declareOk);
         when(declareOk.getQueue()).thenReturn("queue-string");
-        publisherIdList = new ArrayList<>();
         populatePublisherId();
-        dataReceiver = new DataReceiver(getProperties(), publisherIdList);
+        dataReceiver = new DataReceiver(getProperties());
         sensorData = new SensorData(-1, -1, -1, clientId, -1, -1, -1, -1, -1, -1);
         setField(dataReceiver, "connectionFactory", connectionFactory);
     }
 
+    private void populatePublisherId() {
+        this.publisherIdList = Arrays
+                .asList(getProperties()
+                        .getProperty("climateconfort.publishers")
+                        .split(","));
+    }
+
     @Test
     void subscribeTest() throws InterruptedException, IOException, TimeoutException {
-        (new Thread(() -> {
+        Thread subscriberThread = new Thread(() -> {
             try {
                 dataReceiver.subscribe();
             } catch (IOException | TimeoutException | InterruptedException e) {
                 throw new RuntimeException("Runtime error!");
             }
-        })).start();
-        Thread.sleep(1000);
+        });
+        subscriberThread.start();
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> subscriberThread.getState().equals(Thread.State.WAITING));
         dataReceiver.stop();
         verify(connectionFactory).newConnection();
         verify(connection).createChannel();
@@ -150,7 +159,7 @@ public class DataReceiverTest {
 
         // Write the class descriptor flags
         dataOutputStream.writeByte(ObjectStreamConstants.SC_SERIALIZABLE);
-        
+
         // Write the field count (0 for simplicity)
         dataOutputStream.writeShort(0);
 
@@ -160,28 +169,16 @@ public class DataReceiverTest {
         // Write a TC_NULL (0x70) marker
         dataOutputStream.writeByte(ObjectStreamConstants.TC_NULL);
 
-        
-        assertThrows(RuntimeException.class, () -> {
-            consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class),
-                byteArrayOutputStream.toByteArray());
-        });
-    }
-
-    private void populatePublisherId() {
-        publisherIdList.add("1-1");
-        publisherIdList.add("1-2");
-        publisherIdList.add("1-3");
-        publisherIdList.add("1-4");
-        publisherIdList.add("1-5");
-        publisherIdList.add("1-6");
-        publisherIdList.add("1-7");
-        publisherIdList.add("1-8");
-        publisherIdList.add("1-9");
+        assertDoesNotThrow(
+                () -> consumer.handleDelivery("consumerTag", mock(Envelope.class), mock(BasicProperties.class),
+                        byteArrayOutputStream.toByteArray()));
     }
 
     private Properties getProperties() {
         Properties properties = new Properties();
-        properties.setProperty("client_id", String.valueOf(clientId));
+        String publishers = "1-1,1-2,1-3,1-4,1-5,1-6,1-7,1-8,1-9";
+        properties.setProperty("climateconfort.client_id", String.valueOf(clientId));
+        properties.setProperty("climateconfort.publishers", publishers);
         return properties;
     }
 

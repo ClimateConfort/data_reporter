@@ -1,6 +1,5 @@
 package com.climateconfort.data_reporter.cassandra.domain.eraikina;
 
-import com.datastax.oss.driver.api.mapper.annotations.CqlName;
 import com.datastax.oss.driver.api.mapper.annotations.Entity;
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 
@@ -11,11 +10,11 @@ import lombok.Setter;
 @Setter
 @Entity
 public class Eraikina {
-    @PartitionKey
-    int id;
+    @PartitionKey(1)
+    long enpresaId;
+
+    @PartitionKey(2)
+    long eraikinaId;
     
     String lokalizazioa;
-
-    @CqlName("enpresa_id")
-    int enpresaId;
 }
