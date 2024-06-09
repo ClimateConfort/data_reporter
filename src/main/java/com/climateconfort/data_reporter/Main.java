@@ -42,6 +42,7 @@ import com.climateconfort.data_reporter.cassandra.CassandraConnector;
 import com.climateconfort.data_reporter.cassandra.domain.parametroa.ParametroMota;
 import com.climateconfort.data_reporter.cassandra.domain.parametroa.Parametroa;
 import com.climateconfort.data_reporter.data_collection.DataReceiver;
+import com.climateconfort.data_reporter.heartbeat.HeartbeatSender;
 import com.climateconfort.data_reporter.kafka.KafkaPublisher;
 
 public class Main {
@@ -49,7 +50,7 @@ public class Main {
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final int MAX_DATA_PER_PACKAGE = 600;
     private static final Logger LOGGER = LogManager.getLogger(Main.class);
-    private static final int UPDATE_TIME_MIN = 1;
+    private static final int UPDATE_TIME_MIN = 3;
     private static final Properties COMPILATION_PROPERTIES = new Properties();
     private static final String PROGRAM_NAME = "data_reporter";
     private static final String PROGRAM_VERSION = "1.0.0";
@@ -118,6 +119,7 @@ public class Main {
     private final DataReceiver dataReceiver;
     private final ExecutorService executorService;
     private final KafkaPublisher kafkaPublisher;
+    private final HeartbeatSender heartbeatSender;
 
     private final ReadWriteLock readWriteLock;
     private boolean isStop;
@@ -133,6 +135,7 @@ public class Main {
         this.dataReceiver = new DataReceiver(properties);
         this.executorService = Executors.newWorkStealingPool(THREAD_COUNT);
         this.kafkaPublisher = new KafkaPublisher(properties);
+        this.heartbeatSender = new HeartbeatSender(properties);
         this.readWriteLock = new ReentrantReadWriteLock(true);
         this.isStop = false;
     }
@@ -169,7 +172,7 @@ public class Main {
         LOGGER.info("Setting Up... - done");
     }
 
-    public void start() {
+    public void start() throws IOException, TimeoutException {
         long totalMilisecs = 0;
         Map<Long, Map<Long, List<SensorData>>> sensorDataMap = new HashMap<>();
         sequentialUpdateValues();
@@ -198,6 +201,7 @@ public class Main {
             totalMilisecs += System.currentTimeMillis() - start;
             if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
                 totalMilisecs = 0;
+                heartbeatSender.publish();
                 if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty(SEQUENTIAL_PROPERTY_NAME))) {
                     sequentialUpdateValues();
                 } else {

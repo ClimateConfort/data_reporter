@@ -11,7 +11,7 @@ import com.rabbitmq.client.ConnectionFactory;
 
 public class HeartbeatSender {
     
-    private final static String MESSAGE = "heartbeat";
+    private static final String MESSAGE = "heartbeat";
     private final ConnectionFactory connectionFactory;
 
     public HeartbeatSender(Properties properties) {
@@ -26,7 +26,8 @@ public class HeartbeatSender {
         try (Connection connection = connectionFactory.newConnection();
                 Channel channel = connection.createChannel()) {
             channel.exchangeDeclare(Constants.HEARTBEAT_EXCHANGE, "fanout");
-            channel.basicPublish(Constants.HEARTBEAT_EXCHANGE, null, null, MESSAGE.getBytes());
+            channel.basicPublish(Constants.HEARTBEAT_EXCHANGE, "", null, MESSAGE.getBytes());
+            System.out.println("message sent: " + MESSAGE);
         }
     }
 
