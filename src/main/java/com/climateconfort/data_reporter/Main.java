@@ -178,12 +178,12 @@ public class Main {
     }
 
     public void start() throws IOException, TimeoutException {
-        long totalMilisecs = 0;
+        long totalNanoSec = 0;
         Map<Long, Map<Long, List<SensorData>>> sensorDataMap = new HashMap<>();
         sequentialUpdateValues();
         heartbeatSender.publish();
         while (!isStop) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             dataReceiver
                     .getSensorData()
                     .ifPresent(sensorData -> {
@@ -203,10 +203,10 @@ public class Main {
                                             return concurrentProgramLogic(sensorData, dataList);
                                         });
                     });
-
-            totalMilisecs += System.currentTimeMillis() - start;
-            if (totalMilisecs >= TimeUnit.MINUTES.toMillis(UPDATE_TIME_MIN)) {
-                totalMilisecs = 0;
+            long end = System.nanoTime();
+            totalNanoSec += end - start;
+            if (totalNanoSec >= TimeUnit.MINUTES.toNanos(UPDATE_TIME_MIN)) {
+                totalNanoSec = 0;
                 heartbeatSender.publish();
                 if (Boolean.parseBoolean(COMPILATION_PROPERTIES.getProperty(SEQUENTIAL_PROPERTY_NAME))) {
                     sequentialUpdateValues();
