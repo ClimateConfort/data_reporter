@@ -6,6 +6,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -123,7 +128,7 @@ public class Main {
     private boolean isStop;
     private Map<Long, Map<Long, List<Parametroa>>> valueMap;
 
-    public Main(Path propertiesPath) throws IOException {
+    public Main(Path propertiesPath) throws IOException, UnrecoverableKeyException, KeyManagementException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
         Properties properties = new Properties();
         try (BufferedReader bufferedReader = Files.newBufferedReader(propertiesPath)) {
             properties.load(bufferedReader);

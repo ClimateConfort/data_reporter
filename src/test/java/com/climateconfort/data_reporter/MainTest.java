@@ -26,6 +26,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +45,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.cli.CommandLine;
 import org.awaitility.Awaitility;
@@ -88,7 +95,7 @@ class MainTest {
 
     @BeforeEach
     void setUp() throws IOException, NoSuchFieldException, SecurityException, IllegalArgumentException,
-            IllegalAccessException {
+            IllegalAccessException, UnrecoverableKeyException, KeyManagementException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
         MockitoAnnotations.openMocks(this);
 
         // Create temporary test properties file
@@ -102,7 +109,9 @@ class MainTest {
                 CassandraConnector.class);
                 MockedConstruction<DataReceiver> mockedConstructionDataReceiver = mockConstruction(DataReceiver.class);
                 MockedConstruction<KafkaPublisher> mockedConstructionKafkaPublisher = mockConstruction(
-                        KafkaPublisher.class)) {
+                        KafkaPublisher.class);
+                MockedConstruction<TlsManager> mockedConstruction = mockConstruction(TlsManager.class,
+                        (mock, context) -> when(mock.getSslContext()).thenReturn(mock(SSLContext.class)))) {
             main = new Main(propertiesPath);
         }
 
@@ -175,7 +184,8 @@ class MainTest {
     }
 
     @Test
-    void concurrentProgramLogicBigListTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, IOException, InterruptedException, ExecutionException {
+    void concurrentProgramLogicBigListTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException,
+            IllegalAccessException, IOException, InterruptedException, ExecutionException {
         List<SensorData> sensorDataList = new ArrayList<>();
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
         Field field = setFieldPublic(Main.class, "MAX_DATA_PER_PACKAGE");
@@ -207,7 +217,8 @@ class MainTest {
     @SuppressWarnings("unchecked")
     @Test
     void sequentialProgramLogicBigListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException, NoSuchFieldException, IOException, InterruptedException, ExecutionException {
+            IllegalArgumentException, InvocationTargetException, NoSuchFieldException, IOException,
+            InterruptedException, ExecutionException {
         List<SensorData> sensorDataList = new ArrayList<>();
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
         Field field = setFieldPublic(Main.class, "MAX_DATA_PER_PACKAGE");
@@ -215,16 +226,17 @@ class MainTest {
         for (int i = 0; i < (int) field.get(null); i++) {
             sensorDataList.add(sensorData);
         }
-        
+
         doThrow(InterruptedException.class).when(main).packAndPublish(sensorData, sensorDataList);
-        
+
         Method method = setMethodPublic(Main.class, "sequentialProgramLogic", SensorData.class, List.class);
         List<SensorData> retList = (List<SensorData>) method.invoke(main, sensorData, sensorDataList);
         assertTrue(retList.contains(sensorData));
     }
 
     @Test
-    void sequentialProgramLogicSmallListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    void sequentialProgramLogicSmallListTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException {
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
         List<SensorData> sensorDataList = new ArrayList<>();
         var retList = main.sequentialProgramLogic(sensorData, sensorDataList);
@@ -232,7 +244,8 @@ class MainTest {
     }
 
     @Test
-    void concurrentTakeActionTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException, InterruptedException, ExecutionException {
+    void concurrentTakeActionTest() throws NoSuchFieldException, SecurityException, IllegalArgumentException,
+            IllegalAccessException, InterruptedException, ExecutionException {
         SensorData sensorData = new SensorData(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
         List<SensorData> sensorDataList = new ArrayList<>();
         sensorDataList.add(sensorData);
@@ -256,7 +269,7 @@ class MainTest {
         when(parametroa.isMinimoaDu()).thenReturn(true);
         when(parametroa.getBalioMin()).thenReturn(10.0f);
         when(parametroa.getBalioMax()).thenReturn(50.0f);
-        
+
         // Mock actionCalculate method
         doReturn("Raise the temperature").when(main).actionCalculate(parametroa, 5, "temperature", true);
 
@@ -291,7 +304,7 @@ class MainTest {
         when(parametroa.isMinimoaDu()).thenReturn(true);
         when(parametroa.getBalioMin()).thenReturn(10.0f);
         when(parametroa.getBalioMax()).thenReturn(50.0f);
-        
+
         // Mock actionCalculate method
         doReturn("Raise the sound").when(main).actionCalculate(parametroa, 5, "sound", true);
 
@@ -326,7 +339,7 @@ class MainTest {
         when(parametroa.isMinimoaDu()).thenReturn(true);
         when(parametroa.getBalioMin()).thenReturn(10.0f);
         when(parametroa.getBalioMax()).thenReturn(50.0f);
-        
+
         // Mock actionCalculate method
         doReturn("Raise the humidity").when(main).actionCalculate(parametroa, 5, "humidity", true);
 
@@ -361,7 +374,7 @@ class MainTest {
         when(parametroa.isMinimoaDu()).thenReturn(true);
         when(parametroa.getBalioMin()).thenReturn(10.0f);
         when(parametroa.getBalioMax()).thenReturn(50.0f);
-        
+
         // Mock actionCalculate method
         doReturn("Raise the pressure").when(main).actionCalculate(parametroa, 5, "pressure", true);
 
@@ -440,10 +453,11 @@ class MainTest {
     }
 
     @Test
-    void concurrentUpdateValuesTest() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InterruptedException, NoSuchFieldException {
+    void concurrentUpdateValuesTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException, InterruptedException, NoSuchFieldException {
         ExecutorService mockExecutor = mock(ExecutorService.class);
         Lock lockMock = mock(Lock.class);
-        when(readWriteLock.writeLock()).thenReturn(lockMock);        
+        when(readWriteLock.writeLock()).thenReturn(lockMock);
 
         setField(main, "executorService", mockExecutor);
 
@@ -457,11 +471,12 @@ class MainTest {
 
         verify(lockMock, times(1)).lock();
         verify(lockMock, times(1)).unlock();
-        verify(mockExecutor, times(1)).execute(any(Runnable.class)); 
+        verify(mockExecutor, times(1)).execute(any(Runnable.class));
     }
 
     @Test
-    void sequentialUpdateValuesTest() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    void sequentialUpdateValuesTest() throws NoSuchMethodException, SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException {
         main.sequentialUpdateValues();
         verify(cassandraConnector).getParameters();
     }

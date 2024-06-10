@@ -3,19 +3,29 @@ package com.climateconfort.data_reporter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
+
+import javax.net.ssl.SSLContext;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.MockitoAnnotations;
 
 import com.climateconfort.common.Constants;
@@ -45,11 +55,13 @@ class ActionSenderTest {
 
     @BeforeEach
     void setUp() throws IOException, TimeoutException, NoSuchFieldException, SecurityException,
-            IllegalArgumentException, IllegalAccessException {
+            IllegalArgumentException, IllegalAccessException, UnrecoverableKeyException, KeyManagementException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
         MockitoAnnotations.openMocks(this);
         when(connectionFactory.newConnection()).thenReturn(connection);
         when(connection.createChannel()).thenReturn(channel);
-        actionSender = new ActionSender(getProperties());
+        try (MockedConstruction<TlsManager> mockedConstruction = mockConstruction(TlsManager.class, (mock, context) -> when(mock.getSslContext()).thenReturn(mock(SSLContext.class)))) {
+            actionSender = new ActionSender(getProperties());
+        }
         setField(actionSender, "connectionFactory", connectionFactory);
     }
 

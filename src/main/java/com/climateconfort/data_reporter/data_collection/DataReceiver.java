@@ -3,6 +3,11 @@ package com.climateconfort.data_reporter.data_collection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.climateconfort.common.Constants;
 import com.climateconfort.common.SensorData;
-
+import com.climateconfort.data_reporter.TlsManager;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -36,7 +41,8 @@ public class DataReceiver {
     /*
      * PublisherID: String = String(buildingId) + "-" + String(roomId)
      */
-    public DataReceiver(Properties properties) throws NumberFormatException {
+    public DataReceiver(Properties properties) throws NumberFormatException, UnrecoverableKeyException, KeyManagementException, KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+        TlsManager tlsManager = new TlsManager(properties);
         this.clientId = Integer.parseInt(properties.getProperty("climateconfort.client_id", "NaN"));
         this.connectionFactory = new ConnectionFactory();
         this.connectionFactory.setHost(properties.getProperty("rabbitmq.server.ip", "localhost"));
@@ -49,6 +55,7 @@ public class DataReceiver {
                         .split(","));
         this.dataQueue = new ConcurrentLinkedQueue<>();
         this.isStop = false;
+        this.connectionFactory.useSslProtocol(tlsManager.getSslContext());
     }
 
     public void subscribe() throws IOException, TimeoutException, InterruptedException {
