@@ -57,6 +57,7 @@ class KafkaPublisherTest {
 
     KafkaPublisher kafkaPublisher;
 
+    @SuppressWarnings("rawtypes")
     @BeforeEach
     void setUp() throws FileNotFoundException, IOException, NoSuchFieldException, SecurityException,
             IllegalArgumentException, IllegalAccessException {
