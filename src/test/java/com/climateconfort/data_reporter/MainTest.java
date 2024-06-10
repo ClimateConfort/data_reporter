@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyManagementException;
@@ -143,7 +144,7 @@ class MainTest {
     }
 
     @Test
-    void testSetupCorrect() throws IOException, TimeoutException, InterruptedException {
+    void testSetupCorrect() throws IOException, TimeoutException, InterruptedException, URISyntaxException {
         Scanner scanner = mock(Scanner.class);
         main.setup(scanner);
         Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> verify(dataReceiver).subscribe());

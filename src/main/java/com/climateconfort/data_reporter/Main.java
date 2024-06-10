@@ -3,6 +3,7 @@ package com.climateconfort.data_reporter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -99,6 +100,7 @@ public class Main {
         } catch (ParseException e) {
             LOGGER.error("Error parsing command line arguments", e);
         } catch (Exception e) {
+            Thread.currentThread().interrupt();
             LOGGER.error("Unknown error", e);
         }
     }
@@ -143,7 +145,7 @@ public class Main {
         this.isStop = false;
     }
 
-    public void setup(Scanner scanner) {
+    public void setup(Scanner scanner) throws URISyntaxException, IOException, InterruptedException {
         LOGGER.info("Setting Up...");
         Thread subscriberThread = new Thread(() -> {
             try {
@@ -169,7 +171,7 @@ public class Main {
             }
         });
 
-        // kafkaPublisher.createTopics();
+        kafkaPublisher.createTopics();
         subscriberThread.start();
         waitThread.start();
         LOGGER.info("Setting Up... - done");
