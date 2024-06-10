@@ -18,8 +18,14 @@ $> cd data_reporter
 $> mvn clean package -DskipTests
 ```
 
-The generated jar will be located in `target/data_reporter-1.0.0-jar-with-dependencies.jar`:
+The generated jar will be located in `target/data_reporter-1.0.0-jar-with-dependencies.jar`.
 
+This project work with concurrent execution by default. If you want to build with sequential execution run:
+```
+$> git clone https://github.com/ClimateConfort/data_reporter.git
+$> cd data_reporter
+$> mvn clean package -DskipTests -DsequentialExecution=true
+```
 
 ## Usage
 The usage can be seen by executing the following command:
