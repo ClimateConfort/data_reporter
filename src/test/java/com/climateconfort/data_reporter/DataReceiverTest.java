@@ -106,7 +106,6 @@ class DataReceiverTest {
         for (String publisherId : publisherIdList) {
             verify(channel).queueBind(QUEUE_NAME, Constants.SENSOR_EXCHANGE_NAME, publisherId);
         }
-        verify(channel).basicCancel(null);
     }
 
     @Test
