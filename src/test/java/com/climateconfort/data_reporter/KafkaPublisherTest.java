@@ -1,8 +1,11 @@
 package com.climateconfort.data_reporter;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +13,12 @@ import static org.mockito.Mockito.when;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -23,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import com.climateconfort.data_reporter.avro.SensorDataAvro;
@@ -33,6 +43,18 @@ class KafkaPublisherTest {
     @Mock
     Producer<String, SensorDataAvro> kafkaProducer;
 
+    @Mock
+    HttpClient httpClient;
+
+    @Mock
+    HttpRequest request;
+
+    @Mock
+    HttpRequest.Builder requestBuilder;
+
+    @Mock
+    HttpResponse<String> response;
+
     KafkaPublisher kafkaPublisher;
 
     @BeforeEach
@@ -40,21 +62,30 @@ class KafkaPublisherTest {
             IllegalArgumentException, IllegalAccessException {
         MockitoAnnotations.openMocks(this);
 
-        try (@SuppressWarnings("rawtypes")
-        MockedConstruction<KafkaProducer> mockedConstruction = mockConstruction(KafkaProducer.class)) {
+        try (MockedConstruction<KafkaProducer> mockedConstruction = mockConstruction(KafkaProducer.class);
+                MockedStatic<HttpClient> mockedHttpClientStatic = mockStatic(HttpClient.class)) {
+            mockedHttpClientStatic.when(() -> HttpClient.newHttpClient()).thenReturn(httpClient);
             kafkaPublisher = new KafkaPublisher(getProperties());
             setField(kafkaPublisher, "kafkaProducer", kafkaProducer);
         }
 
     }
 
-    private Properties getProperties() {
-        Properties properties = new Properties();
-        properties.setProperty("climateconfort.client_id", "1");
-        properties.setProperty("climateconfort.publishers", "1-1,1-2");
-        properties.setProperty("kafka.request.timeout.ms", "1000");
-        properties.setProperty("kafka.schema_registry.url", "Hey, Listen!");
-        return properties;
+    @Test
+    void createTopicsTest() throws IOException, InterruptedException, URISyntaxException {
+        when(requestBuilder.uri(any())).thenReturn(requestBuilder);
+        when(requestBuilder.header(anyString(), anyString())).thenReturn(requestBuilder);
+        when(requestBuilder.PUT(any())).thenReturn(requestBuilder);
+        when(requestBuilder.build()).thenReturn(request);
+        when(httpClient.send(request, BodyHandlers.ofString())).thenReturn(response);
+        when(response.statusCode()).thenReturn(1);
+        when(response.body()).thenReturn("Body!");
+        try (MockedStatic<HttpRequest> mockHttpRequestStatic = mockStatic(HttpRequest.class);
+                MockedConstruction<URI> mockedConstruction = mockConstruction(URI.class)) {
+            mockHttpRequestStatic.when(() -> HttpRequest.newBuilder()).thenReturn(requestBuilder);
+            kafkaPublisher.createTopics();
+        }
+        verify(httpClient, atLeastOnce()).send(any(HttpRequest.class), any());
     }
 
     @SuppressWarnings("unchecked")
@@ -77,6 +108,15 @@ class KafkaPublisherTest {
     void closeTest() {
         kafkaPublisher.close();
         verify(kafkaProducer).close();
+    }
+
+    private Properties getProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("climateconfort.client_id", "1");
+        properties.setProperty("climateconfort.publishers", "1-1,1-2");
+        properties.setProperty("kafka.request.timeout.ms", "1000");
+        properties.setProperty("kafka.schema_registry.url", "Hey, Listen!");
+        return properties;
     }
 
     private <T, E> void setField(T target, String fieldName, E newValue)
