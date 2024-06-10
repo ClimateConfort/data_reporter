@@ -28,7 +28,7 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
-class TLSManagerTest {
+class TlsManagerTest {
 
     @Mock
     Properties properties;
